@@ -1,0 +1,33 @@
+{
+	"compilerOptions": {
+		"lib": [
+			"es2017",
+			"es2019.array",
+			"dom",
+		],
+		"types": [
+			"node",
+			"jest"
+		],
+		"module": "commonjs",
+		"noImplicitAny": true,
+		"removeComments": true,
+		"strictNullChecks": true,
+		"strict": true,
+		"preserveConstEnums": true,
+		"resolveJsonModule": true,
+		"declaration": true,
+		"outDir": "./dist/",
+		"target": "es2017",
+		"sourceMap": true
+	},
+	"include": [
+		"src/**/*",
+		"nodes/**/*",
+		"nodes/**/*.json",
+		"test/**/*"
+	],
+	"exclude": [
+		"**/*.spec.ts"
+	]
+}

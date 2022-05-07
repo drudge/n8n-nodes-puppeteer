@@ -1,0 +1,69 @@
+{
+    "name": "n8n-nodes-puppeteer",
+    "version": "0.3.0",
+    "description": "n8n node for requesting webpages using Puppeteer",
+    "license": "MIT",
+    "homepage": "https://github.com/drudge/n8n-nodes-puppeteer",
+    "author": {
+        "name": "Nicholas Penree",
+        "email": "nick@penree.com"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/drudge/n8n-nodes-puppeteer.git"
+    },
+    "main": "index.js",
+    "scripts": {
+        "dev": "npm run watch",
+        "build": "tsc && gulp",
+        "lint": "tslint -p tsconfig.json -c tslint.json",
+        "lintfix": "tslint --fix -p tsconfig.json -c tslint.json",
+        "nodelinter": "nodelinter",
+        "watch": "tsc --watch",
+        "test": "jest"
+    },
+    "files": [
+        "dist"
+    ],
+    "n8n": {
+        "credentials": [],
+        "nodes": [
+            "dist/nodes/Puppeteer/Puppeteer.node.js"
+        ]
+    },
+    "devDependencies": {
+        "@types/express": "^4.17.6",
+        "@types/jest": "^26.0.13",
+        "@types/node": "^14.17.27",
+        "@types/request-promise-native": "~1.0.15",
+        "gulp": "^4.0.0",
+        "jest": "^26.4.2",
+        "n8n": "^0.174.0",
+        "n8n-workflow": "~0.83.0",
+        "nodelinter": "^0.1.9",
+        "ts-jest": "^26.3.0",
+        "tslint": "^6.1.2",
+        "typescript": "~4.3.5"
+    },
+    "dependencies": {
+        "n8n-core": "~0.101.0",
+        "puppeteer": "^13.7.0"
+    },
+    "jest": {
+        "transform": {
+            "^.+\\.tsx?$": "ts-jest"
+        },
+        "testURL": "http://localhost/",
+        "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
+        "testPathIgnorePatterns": [
+            "/dist/",
+            "/node_modules/"
+        ],
+        "moduleFileExtensions": [
+            "ts",
+            "tsx",
+            "js",
+            "json"
+        ]
+    }
+}
