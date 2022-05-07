@@ -7,14 +7,15 @@
 ## Node Reference
 
 * Operations
-    * Gets the full HTML contents of the page
+    * Get the full HTML contents of the page
     * Capture screenshot of all or part of the page
 
 * Options
     * All Operations
         * **Emulate Device** field: Allows you to specify a [device](https://github.com/puppeteer/puppeteer/blob/main/src/common/DeviceDescriptors.ts) to emulate when requesting the page.
         * **Extra Headers** field: Allows you add additional headers when requesting the page.
-        * **Wait Until** field: Allows you to change how Puppeteer considers navigation completed. Defaults to `load`.
+        * **Timeout** field: Allows you to specify tge maximum navigation time in milliseconds. You can pass 0 to disable the timeout entirely.
+        * **Wait Until** field: Allows you to change how Puppeteer considers navigation completed.
             * `load`: The load event is fired.
             * `DOMContentLoaded`: The DOMContentLoaded event is fired.
             * `networkidle0`: No more than 0 connections for at least 500 ms.

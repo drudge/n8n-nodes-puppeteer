@@ -222,6 +222,16 @@ export class Puppeteer implements INodeType {
 						description: 'File name to set in binary data.',
 					},
 					{
+						displayName: 'Timeout',
+						name: 'timeout',
+						type: 'number',
+						typeOptions: {
+							minValue: 0,
+						},
+						default: 30,
+						description: 'Maximum navigation time in milliseconds. Pass 0 to disable timeout.',
+					},
+					{
 						displayName: 'Wait Until',
 						name: 'waitUntil',
 						type: 'options',
@@ -316,8 +326,11 @@ export class Puppeteer implements INodeType {
 			}
 
 			console.log(`Processing ${itemIndex+1} of ${items.length}: [${operation}]${device ? ` [${device}] ` : ' ' }${url}`);
+			
 			const waitUntil = options.waitUntil as puppeteer.PuppeteerLifeCycleEvent;
-			const response = await page.goto(url.toString(), { waitUntil });
+			const timeout = options.timeout as number;
+
+			const response = await page.goto(url.toString(), { waitUntil, timeout });
 			const headers = await response.headers();
 			const statusCode = response.status();
 			let returnItem;
