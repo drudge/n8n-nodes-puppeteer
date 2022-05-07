@@ -2,15 +2,33 @@
 
 ![n8n.io - Workflow Automation](https://raw.githubusercontent.com/n8n-io/n8n/master/assets/n8n-logo.png)
 
-n8n node for requesting webpages using Puppeteer.
+[n8n](https://www.n8n.io) node for requesting webpages using [Puppeteer](https://pptr.dev/), a Node library which provides a high-level API to control Chrome or Chromium over the DevTools Protocol. 
 
-Puppeteer is a Node library which provides a high-level API to control Chrome or Chromium over the DevTools Protocol. 
+## Node Reference
 
-The node currently supports the following operations:
+* Operations
+    * Gets the full HTML contents of the page
+    * Capture screenshot of all or part of the page
 
-* Get Page Content
-* Get Screenshot
-
+* Options
+    * All Operations
+        * **Emulate Device** field: Allows you to specify a [device](https://github.com/puppeteer/puppeteer/blob/main/src/common/DeviceDescriptors.ts) to emulate when requesting the page.
+        * **Extra Headers** field: Allows you add additional headers when requesting the page.
+        * **Wait Until** field: Allows you to change how Puppeteer considers navigation completed. Defaults to `load`.
+            * `load`: The load event is fired.
+            * `DOMContentLoaded`: The DOMContentLoaded event is fired.
+            * `networkidle0`: No more than 0 connections for at least 500 ms.
+            * `networkidle2`: No more than 2 connections for at least 500 ms.
+    * Get Screenshot
+        * **File Name** field: Allows you to specify the filename of the output file.
+        * **Type** field: Allows you to specify the image format of the output file:
+            * JPEG
+            * PNG
+            * WebP
+        * **Quality** field: Allows you to specify the quality of the image.
+            * Accepts a value between 0-100.
+            * Not applicable to PNG images.
+        * **Full Page** field: Allows you to capture a screen of the full scrollable content.
 ## License
 
 MIT License
