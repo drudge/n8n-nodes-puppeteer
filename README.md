@@ -32,6 +32,17 @@
             * Accepts a value between 0-100.
             * Not applicable to PNG images.
         * **Full Page** field: Allows you to capture a screen of the full scrollable content.
+
+## Screenshots
+
+### Get Page Content
+
+![](images/content.png)
+
+### Get Screenshot
+
+![](images/screenshot.png)
+
 ## License
 
 MIT License
