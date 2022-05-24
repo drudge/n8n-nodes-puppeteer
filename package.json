@@ -1,6 +1,6 @@
 {
     "name": "n8n-nodes-puppeteer",
-    "version": "0.3.1",
+    "version": "0.3.2",
     "description": "n8n node for requesting webpages using Puppeteer",
     "license": "MIT",
     "homepage": "https://github.com/drudge/n8n-nodes-puppeteer",
@@ -47,7 +47,9 @@
     },
     "dependencies": {
         "n8n-core": "~0.101.0",
-        "puppeteer": "^13.7.0"
+        "puppeteer": "^13.7.0",
+        "puppeteer-extra": "^3.2.3",
+        "puppeteer-extra-plugin-stealth": "^2.9.0"
     },
     "jest": {
         "transform": {
