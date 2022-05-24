@@ -265,15 +265,7 @@ export const nodeDescription: INodeTypeDescription = {
                     required: false,
                     default: true,
                     description: 'Whether to run browser in headless mode.',
-                },
-                {
-                    displayName: 'Stealth mode',
-                    name: 'stealthMode',
-                    type: 'boolean',
-                    required: false,
-                    default: false,
-                    description: 'Whether to run browser in headless mode.',
-                },
+                }
             ]
         },
     ],

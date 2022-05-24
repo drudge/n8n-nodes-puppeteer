@@ -8,15 +8,11 @@ import {
 	INodePropertyOptions,
 } from 'n8n-workflow';
 
-import puppeteer from 'puppeteer-extra';
-//import { addExtra } from 'puppeteer-extra';
-import { default as StealthPlugin } from 'puppeteer-extra-plugin-stealth';
+import puppeteer from 'puppeteer';
 
 import {
 	nodeDescription,
 } from './Puppeteer.node.options';
-
-//const puppeteer = addExtra(vanillaPuppeteer);
 
 const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36';
 export class Puppeteer implements INodeType {
@@ -43,18 +39,12 @@ export class Puppeteer implements INodeType {
 	};
 	
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
-		let items: INodeExecutionData[] = this.getInputData();
-		let returnData: INodeExecutionData[] = [];
-
+		const items: INodeExecutionData[] = this.getInputData();
+		const returnData: INodeExecutionData[] = [];
 		const options = this.getNodeParameter('options', 0, {}) as IDataObject;
 		const operation = this.getNodeParameter('operation', 0) as string;
 		const headless = options.headless !== false;
-		const stealthMode = options.stealthMode === true;
 		const browser = await puppeteer.launch({ headless });
-
-		if (stealthMode) {
-			puppeteer.use(StealthPlugin());
-		}
 
 		for (let itemIndex: number = 0; itemIndex < items.length; itemIndex++) {
 			const urlString = this.getNodeParameter('url', itemIndex) as string;

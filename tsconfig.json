@@ -15,7 +15,7 @@
 		"preserveConstEnums": true,
 		"resolveJsonModule": true,
 		"declaration": true,
-		"outDir": "./dist",
+		"outDir": "./dist/",
 		"target": "es2017",
 		"sourceMap": true,
 		"allowSyntheticDefaultImports": true,
@@ -29,16 +29,13 @@
 		"noUnusedLocals": true,
 		"noUnusedParameters": false,
 		"pretty": true,
-		"stripInternal": true
+		"stripInternal": true,
+		"rootDir": "./"
 	},
 	"include": [
-		"src/**/*",
-		"nodes/**/*",
-		"nodes/**/*.json",
-		"test/**/*"
+		"nodes/**/*"
 	],
 	"exclude": [
-		"**/*.spec.ts",
 		"node_modules",
 		"dist"
 	]
