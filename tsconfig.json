@@ -30,7 +30,8 @@
 		"noUnusedParameters": false,
 		"pretty": true,
 		"stripInternal": true,
-		"rootDir": "./"
+		"rootDir": "./",
+		"forceConsistentCasingInFileNames": true
 	},
 	"include": [
 		"nodes/**/*"

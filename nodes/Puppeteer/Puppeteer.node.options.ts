@@ -39,13 +39,8 @@ export const nodeDescription: INodeTypeDescription = {
                 {
                     name: 'Get Screenshot',
                     value: 'getScreenshot',
-                    description: 'Capture all or part of the page as an image',
+                    description: 'Captures all or part of the page as an image',
                 },
-                // {
-                // 	name: 'Get PDF',
-                // 	value: 'getPDF',
-                // 	description: 'Capture all or part of the page as a PDF',
-                // },
             ],
             default: 'getPageContent',
         },
@@ -259,12 +254,28 @@ export const nodeDescription: INodeTypeDescription = {
                     description: 'When to consider navigation succeeded.',
                 },
                 {
+                    displayName: 'Page Caching',
+                    name: 'pageCaching',
+                    type: 'boolean',
+                    required: false,
+                    default: true,
+                    description: 'Whether to enable page level caching. Defaults to true.',
+                },
+                {
                     displayName: 'Headless mode',
                     name: 'headless',
                     type: 'boolean',
                     required: false,
                     default: true,
-                    description: 'Whether to run browser in headless mode.',
+                    description: 'Whether to run browser in headless mode. Defaults to true.',
+                },
+                {
+                    displayName: 'Stealth mode',
+                    name: 'stealth',
+                    type: 'boolean',
+                    required: false,
+                    default: false,
+                    description: 'When enabled, applies various techniques to make detection of headless Puppeteer harder.',
                 }
             ]
         },

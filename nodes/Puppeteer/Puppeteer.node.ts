@@ -8,7 +8,9 @@ import {
 	INodePropertyOptions,
 } from 'n8n-workflow';
 
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-extra';
+import pluginStealth from "puppeteer-extra-plugin-stealth";
+import { devices, PuppeteerLifeCycleEvent, ScreenshotOptions } from 'puppeteer';
 
 import {
 	nodeDescription,
@@ -21,11 +23,11 @@ export class Puppeteer implements INodeType {
 	methods = {
 		loadOptions: {
 			async getDevices(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const deviceNames = Object.keys(puppeteer.devices);
+				const deviceNames = Object.keys(devices);
 				const returnData: INodePropertyOptions[] = [];
 
 				for (const name of deviceNames) {
-					const device = puppeteer.devices[name];
+					const device = devices[name];
 					returnData.push({
 						name,
 						value: name,
@@ -44,6 +46,12 @@ export class Puppeteer implements INodeType {
 		const options = this.getNodeParameter('options', 0, {}) as IDataObject;
 		const operation = this.getNodeParameter('operation', 0) as string;
 		const headless = options.headless !== false;
+		const stealth = options.stealth === true;
+		const pageCaching = options.pageCaching !== false;
+
+		if (stealth) {
+			puppeteer.use(pluginStealth());
+		}
 		const browser = await puppeteer.launch({ headless });
 
 		for (let itemIndex: number = 0; itemIndex < items.length; itemIndex++) {
@@ -59,14 +67,16 @@ export class Puppeteer implements INodeType {
 			const url = new URL(urlString);
 			const page = await browser.newPage();
 
+			await page.setCacheEnabled(pageCaching);
+
 			if (device) {
-				const emulatedDevice = puppeteer.devices[device];
+				const emulatedDevice = devices[device];
 				if (emulatedDevice) {
 					await page.emulate(emulatedDevice);
 				}
 			} else {
 				const userAgent = requestHeaders['User-Agent'] || requestHeaders['user-agent'] || DEFAULT_USER_AGENT;
-				page.setUserAgent(userAgent)
+				await page.setUserAgent(userAgent)
 			}
 
 			await page.setExtraHTTPHeaders(requestHeaders);
@@ -77,14 +87,12 @@ export class Puppeteer implements INodeType {
 
 			console.log(`Processing ${itemIndex+1} of ${items.length}: [${operation}]${device ? ` [${device}] ` : ' ' }${url}`);
 			
-			const waitUntil = options.waitUntil as puppeteer.PuppeteerLifeCycleEvent;
+			const waitUntil = options.waitUntil as PuppeteerLifeCycleEvent;
 			const timeout = options.timeout as number;
-
 			const response = await page.goto(url.toString(), { waitUntil, timeout });
 			const headers = await response.headers();
 			const statusCode = response.status();
 			let returnItem: any;
-
 
 			if (statusCode !== 200) {
 				if (this.continueOnFail() !== true) {
@@ -113,9 +121,9 @@ export class Puppeteer implements INodeType {
 				} else if (operation === 'getScreenshot') {
 					const dataPropertyName = this.getNodeParameter('dataPropertyName', itemIndex) as string;
 					const fileName = options.fileName as string;
-					const type = this.getNodeParameter('imageType', itemIndex) as puppeteer.ScreenshotOptions['type'];
+					const type = this.getNodeParameter('imageType', itemIndex) as ScreenshotOptions['type'];
 					const fullPage = this.getNodeParameter('fullPage', itemIndex) as boolean;
-					const screenshotOptions: puppeteer.ScreenshotOptions = {
+					const screenshotOptions: ScreenshotOptions = {
 						type,
 						fullPage,
 					};
