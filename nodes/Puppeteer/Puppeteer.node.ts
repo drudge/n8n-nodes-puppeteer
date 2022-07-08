@@ -48,11 +48,17 @@ export class Puppeteer implements INodeType {
 		const headless = options.headless !== false;
 		const stealth = options.stealth === true;
 		const pageCaching = options.pageCaching !== false;
+		const args: string[] = [];
+
+		// More on proxying: https://www.chromium.org/developers/design-documents/network-settings
+		if (options.proxyServer) {
+			args.push(`--proxy-server=${options.proxyServer}`);
+		}
 
 		if (stealth) {
 			puppeteer.use(pluginStealth());
 		}
-		const browser = await puppeteer.launch({ headless });
+		const browser = await puppeteer.launch({ headless, args });
 
 		for (let itemIndex: number = 0; itemIndex < items.length; itemIndex++) {
 			const urlString = this.getNodeParameter('url', itemIndex) as string;
