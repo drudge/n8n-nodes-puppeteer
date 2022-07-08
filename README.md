@@ -39,6 +39,24 @@ For Docker-based deployments, add the following line before the font installatio
         * **Page Caching**: Allows you to toggle whether pages should be cached when requesting.
         * **Headless mode**: Allows you to change whether to run browser runs in headless mode or not.
         * **Stealth mode**: When enabled, applies various techniques to make detection of headless Puppeteer harder. Powered by [puppeteer-extra-plugin-stealth](https://github.com/berstend/puppeteer-extra/tree/master/packages/puppeteer-extra-plugin-stealth).
+        * **Proxy Server**: Allows Puppeteer to use a custom proxy configuration. You can specify a custom proxy configuration in three ways:
+            By providing a semi-colon-separated mapping of list scheme to url/port pairs.
+            For example, you can specify:
+            
+                http=foopy:80;ftp=foopy2
+            
+            to use HTTP proxy "foopy:80" for http URLs and HTTP proxy "foopy2:80" for ftp URLs.
+            
+            By providing a single uri with optional port to use for all URLs.
+            For example:
+            
+                foopy:8080
+            
+            will use the proxy at foopy:8080 for all traffic.
+            
+            By using the special "direct://" value.
+            
+                direct://" will cause all connections to not use a proxy.
     * Get Screenshot
         * **File Name**: Allows you to specify the filename of the output file.
         * **Type** field: Allows you to specify the image format of the output file:
