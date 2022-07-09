@@ -213,7 +213,10 @@ export class Puppeteer implements INodeType {
 							json: {
 								headers,
 								statusCode,
-							}
+							},
+							pairedItem: {
+								item: itemIndex,
+							},
 						};
 					}
 				}
