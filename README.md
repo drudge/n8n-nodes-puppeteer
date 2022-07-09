@@ -24,6 +24,7 @@ For Docker-based deployments, add the following line before the font installatio
 
 * **Operations**
     * Get the full HTML contents of the page
+    * Capture the contents of a page as a PDF document
     * Capture screenshot of all or part of the page
 
 * **Options**
@@ -55,8 +56,33 @@ For Docker-based deployments, add the following line before the font installatio
             will use the proxy at foopy:8080 for all traffic.
             
             By using the special "direct://" value.
-            
+
                 direct://" will cause all connections to not use a proxy.
+    * Get PDF
+        * **File Name**: Allows you to specify the filename of the output file.
+        * **Page Ranges** field: Allows you to specify paper ranges to print, e.g. 1-5, 8, 11-13.
+        * **Scale**: Allows you to scale the rendering of the web page. Amount must be between 0.1 and 2
+        * **Prefer CSS Page Size**: Give any CSS @page size declared in the page priority over what is declared in the width or height or format option.
+        * **Format**: Allows you to specify the paper format types when printing a PDF. eg: Letter, A4.
+        * **Height**: Allows you to set the height of paper. You can pass in a number or a string with a unit.
+        * **Width**: Allows you to set the width of paper. You can pass in a number or a string with a unit.
+        * **Landscape**: Allows you to control whether to show the header and footer
+        * **Margin**: Allows you to specify top, left, right, and bottom margin.
+        * **Display Header/Footer**: Allows you to specify whether to show the header and footer.
+        * **Header Template**: Allows you to specify the HTML template for the print header. Should be valid HTML with the following classes used to inject values into them:
+            - `date`: Formatted print date
+            - `title`: Document title
+            - `url`: Document location
+            - `pageNumber` Current page number
+            - `totalPages` Total pages in the document
+         * **Footer Template**: Allows you to specify the HTML template for the print footer. Should be valid HTML with the following classes used to inject values into them:
+            - `date`: Formatted print date
+            - `title`: Document title
+            - `url`: Document location
+            - `pageNumber` Current page number
+            - `totalPages` Total pages in the document
+        * **Transparent Background**: Allows you to hide the default white background and allows generate PDFs with transparency.
+        * **Background Graphic**: Allows you to include background graphics.
     * Get Screenshot
         * **File Name**: Allows you to specify the filename of the output file.
         * **Type** field: Allows you to specify the image format of the output file:

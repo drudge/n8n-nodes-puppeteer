@@ -1,6 +1,6 @@
 {
     "name": "n8n-nodes-puppeteer",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "description": "n8n node for requesting webpages using Puppeteer",
     "license": "MIT",
     "homepage": "https://github.com/drudge/n8n-nodes-puppeteer",

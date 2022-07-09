@@ -37,6 +37,11 @@ export const nodeDescription: INodeTypeDescription = {
                     description: 'Gets the full HTML contents of the page',
                 },
                 {
+                    name: 'Get PDF',
+                    value: 'getPDF',
+                    description: 'Captures all or part of the page as a PDF',
+                },
+                {
                     name: 'Get Screenshot',
                     value: 'getScreenshot',
                     description: 'Captures all or part of the page as an image',
@@ -50,14 +55,320 @@ export const nodeDescription: INodeTypeDescription = {
             type: 'string',
             required: true,
             default: 'data',
-            description: 'Name of the binary property in which  to store the image data.',
+            description: 'Name of the binary property in which  to store the image or PDF data.',
             displayOptions: {
                 show: {
                     operation: [
                         'getScreenshot',
+                        'getPDF',
                     ],
                 },
             },
+        },
+        {
+            displayName: 'Page Ranges',
+            name: 'pageRanges',
+            type: 'string',
+            required: false,
+            default: '',
+            description: 'Paper ranges to print, e.g. 1-5, 8, 11-13.',
+            displayOptions: {
+                show: {
+                    operation: [
+                        'getPDF',
+                    ],
+                },
+            },
+        },
+        {
+            displayName: 'Scale',
+            name: 'scale',
+            type: 'number',
+            typeOptions: {
+                minValue: 0.1,
+                maxValue: 2,
+            },
+            default: 1.0,
+            required: true,
+            description: 'Scales the rendering of the web page. Amount must be between 0.1 and 2.',
+            displayOptions: {
+                show: {
+                    operation: [
+                        'getPDF',
+                    ],
+                },
+            },
+        },
+        {
+            displayName: 'Prefer CSS Page Size',
+            name: 'preferCSSPageSize',
+            type: 'boolean',
+            required: true,
+            default: true,
+            displayOptions: {
+                show: {
+                    operation: [
+                        'getPDF',
+                    ],
+                },
+            },
+            description: 'Give any CSS @page size declared in the page priority over what is declared in the width or height or format option.',
+        },
+        {
+            displayName: 'Format',
+            name: 'format',
+            type: 'options',
+            options: [
+                {
+                    name: 'Letter',
+                    value: 'Letter',
+                    description: '8.5in x 11in',
+                },
+                {
+                    name: 'Legal',
+                    value: 'Legal',
+                    description: '8.5in x 14in',
+                },
+                {
+                    name: 'Tabloid',
+                    value: 'Tabloid',
+                    description: '11in x 17in',
+                },
+                {
+                    name: 'Ledger',
+                    value: 'Ledger',
+                    description: '17in x 11in',
+                },
+                {
+                    name: 'A0',
+
+                    value: 'A0',
+                    description: '33.1in x 46.8in',
+                },
+                {
+                    name: 'A1',
+                    value: 'A1',
+                    description: '23.4in x 33.1in',
+                },
+                {
+                    name: 'A2',
+                    value: 'A2',
+                    description: '16.54in x 23.4in',
+                },
+                {
+                    name: 'A3',
+                    value: 'A3',
+                    description: '11.7in x 16.54in',
+                },
+                {
+                    name: 'A4',
+                    value: 'A4',
+                    description: '8.27in x 11.7in',
+                },
+                {
+                    name: 'A5',
+                    value: 'A5',
+                    description: '5.83in x 8.27in',
+                },
+                {
+                    name: 'A6',
+                    value: 'A6',
+                    description: '4.13in x 5.83in',
+                },
+            ],
+            default: 'Letter',
+            description: 'Valid paper format types when printing a PDF. eg: Letter, A4',
+            displayOptions: {
+                show: {
+                    operation: [
+                        'getPDF',
+                    ],
+                    preferCSSPageSize: [false],
+                },
+            },
+        },
+        {
+            displayName: 'Height',
+            name: 'height',
+            type: 'string',
+            default: '',
+            required: false,
+            description: 'Sets the height of paper. You can pass in a number or a string with a unit.',
+            displayOptions: {
+                show: {
+                    operation: [
+                        'getPDF',
+                    ],
+                    preferCSSPageSize: [false],
+                },
+            },
+        },
+        {
+            displayName: 'Width',
+            name: 'width',
+            type: 'string',
+            default: '',
+            required: false,
+            description: 'Sets the width of paper. You can pass in a number or a string with a unit.',
+            displayOptions: {
+                show: {
+                    operation: [
+                        'getPDF',
+                    ],
+                    preferCSSPageSize: [false],
+                },
+            },
+        },
+        {
+            displayName: 'Landscape',
+            name: 'landscape',
+            type: 'boolean',
+            required: true,
+            default: true,
+            displayOptions: {
+                show: {
+                    operation: [
+                        'getPDF',
+                    ],
+                },
+            },
+            description: 'Whether to show the header and footer.',
+        },
+        {
+            displayName: 'Margin',
+            name: 'margin',
+            type: 'collection',
+            placeholder: 'Add Margin',
+            default: {},
+            description: 'Set the PDF margins.',
+            displayOptions: {
+                show: {
+                    operation: [
+                        'getPDF',
+                    ],
+                },
+            },
+            options: [
+                {
+                    displayName: 'Top',
+                    name: 'top',
+                    type: 'string',
+                    default: '',
+                    required: false,
+                },
+                {
+                    displayName: 'Bottom',
+                    name: 'bottom',
+                    type: 'string',
+                    default: '',
+                    required: false,
+                },
+                {
+                    displayName: 'Left',
+                    name: 'left',
+                    type: 'string',
+                    default: '',
+                    required: false,
+                },
+                {
+                    displayName: 'Right',
+                    name: 'right',
+                    type: 'string',
+                    default: '',
+                    required: false,
+                },
+            ],
+        },
+        {
+            displayName: 'Display Header/Footer',
+            name: 'displayHeaderFooter',
+            type: 'boolean',
+            required: true,
+            default: false,
+            displayOptions: {
+                show: {
+                    operation: [
+                        'getPDF',
+                    ],
+                },
+            },
+            description: 'Whether to show the header and footer.',
+        },
+        {
+			displayName: 'Header Template',
+			name: 'headerTemplate',
+			typeOptions: {
+				rows: 5,
+			},
+			type: 'string',
+			default: ``,
+			description: `HTML template for the print header. Should be valid HTML with the following classes used to inject values into them: - date formatted print date
+
+            - title document title
+            
+            - url document location
+            
+            - pageNumber current page number
+            
+            - totalPages total pages in the document`,
+			noDataExpression: true,
+			displayOptions: {
+                show: {
+                    operation: [
+                        'getPDF',
+                    ],
+                    displayHeaderFooter: [true],
+                },
+            },
+		},
+        {
+			displayName: 'Footer Template',
+			name: 'footerTemplate',
+			typeOptions: {
+				rows: 5,
+			},
+			type: 'string',
+			default: ``,
+			description: `HTML template for the print footer. Should be valid HTML with the following classes used to inject values into them: - date formatted print date`,
+			noDataExpression: true,
+			displayOptions: {
+                show: {
+                    operation: [
+                        'getPDF',
+                    ],
+                    displayHeaderFooter: [true],
+                },
+            },
+		},
+        {
+            displayName: 'Transparent Background',
+            name: 'omitBackground',
+            type: 'boolean',
+            required: true,
+            default: false,
+            displayOptions: {
+                show: {
+                    operation: [
+                        'getPDF',
+                    ],
+                },
+            },
+            description: 'Hides default white background and allows generating pdfs with transparency.',
+        },
+        {
+            displayName: 'Background Graphics',
+            name: 'printBackground',
+            type: 'boolean',
+            required: true,
+            default: false,
+            displayOptions: {
+                show: {
+                    operation: [
+                        'getPDF',
+                    ],
+                },
+            },
+            description: 'Set to true to include background graphics.',
         },
         {
             displayName: 'Type',
@@ -283,24 +594,7 @@ export const nodeDescription: INodeTypeDescription = {
                     type: 'string',
                     required: false,
                     default: '',
-                    description: `This tells Puppeteer to use a custom proxy configuration. You can specify a custom proxy configuration in three ways:
-
-                    By providing a semi-colon-separated mapping of list scheme to url/port pairs.
-                    For example, you can specify:
-                    
-                    http=foopy:80;ftp=foopy2
-                    
-                    to use HTTP proxy "foopy:80" for http URLs and HTTP proxy "foopy2:80" for ftp URLs.
-                    
-                    By providing a single uri with optional port to use for all URLs.
-                    For example:
-                    
-                    foopy:8080
-                    
-                    will use the proxy at foopy:8080 for all traffic.
-                    
-                    By using the special "direct://" value.
-                    direct://" will cause all connections to not use a proxy.`,
+                    description: 'This tells Puppeteer to use a custom proxy configuration. Examples: localhost:8080, socks5://localhost:1080, etc.',
                 }
             ]
         },

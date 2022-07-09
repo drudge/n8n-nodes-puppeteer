@@ -155,6 +155,67 @@ export class Puppeteer implements INodeType {
 						};
 					}
 
+				} else if (operation === 'getPDF') {
+					const dataPropertyName = this.getNodeParameter('dataPropertyName', itemIndex) as string;					
+					const pageRanges = this.getNodeParameter('pageRanges', itemIndex) as string;					
+					const displayHeaderFooter = this.getNodeParameter('displayHeaderFooter', itemIndex) as boolean;
+					const omitBackground = this.getNodeParameter('omitBackground', itemIndex) as boolean;
+					const printBackground = this.getNodeParameter('printBackground', itemIndex) as boolean;
+					const landscape = this.getNodeParameter('landscape', itemIndex) as boolean;
+					const preferCSSPageSize = this.getNodeParameter('preferCSSPageSize', itemIndex) as boolean;
+					const scale = this.getNodeParameter('scale', itemIndex) as number;
+					const margin = this.getNodeParameter('margin', 0, {}) as IDataObject;
+
+					let headerTemplate;
+					let footerTemplate;
+					let height;
+					let width;
+					let format;
+					
+					if (displayHeaderFooter === true) {
+						headerTemplate = this.getNodeParameter('headerTemplate', itemIndex) as string;
+						footerTemplate = this.getNodeParameter('footerTemplate', itemIndex) as string;
+					}
+
+					if (preferCSSPageSize !== true) {
+						height = this.getNodeParameter('height', itemIndex) as string;
+						width = this.getNodeParameter('width', itemIndex) as string;
+
+						if (!height || !width) {
+							format = this.getNodeParameter('format', itemIndex) as string;
+						}
+					}
+					
+					const pdfOptions: any = {
+						format,
+						displayHeaderFooter,
+						omitBackground,
+						printBackground,
+						landscape,
+						headerTemplate,
+						footerTemplate,
+						preferCSSPageSize,
+						scale,
+						height,
+						width,
+						pageRanges,
+						margin,
+					};
+					const fileName = options.fileName as string;
+					if (fileName) {
+						pdfOptions.path = fileName;
+					}
+					const pdf = await page.pdf(pdfOptions) as Buffer;
+					if (pdf) {
+						const binaryData = await this.helpers.prepareBinaryData(pdf, pdfOptions.path, 'application/pdf');
+						returnItem = {
+							binary: { [dataPropertyName]:binaryData },
+							json: {
+								headers,
+								statusCode,
+							}
+						};
+					}
 				}
 			}
 
