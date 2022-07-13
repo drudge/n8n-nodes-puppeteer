@@ -16,7 +16,7 @@ For Docker-based deployments, you'll need to make sure [puppeteer is installed](
 
 `RUN cd /usr/local/lib/node_modules/n8n && npm install n8n-nodes-puppeteer`
 
-Check out [this gist](https://gist.github.com/drudge/4be1238282a5db30b3786b5de394d13d) for a working example.
+Check out [this gist](https://gist.github.com/drudge/4be1238282a5db30b3786b5de394d13d) or [Marcus' example repo](https://github.com/maspio/n8n-puppeteer-docker) for a working example.
 
 > 
 > **Note:** If you've having issues running puppeteer, please check their [Troubleshooting guide](https://github.com/puppeteer/puppeteer/blob/main/docs/troubleshooting.md) before opening an issue here.
