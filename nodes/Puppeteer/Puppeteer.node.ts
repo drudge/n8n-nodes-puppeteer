@@ -39,16 +39,23 @@ export class Puppeteer implements INodeType {
 			}
 		}
 	};
-	
+
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items: INodeExecutionData[] = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
 		const options = this.getNodeParameter('options', 0, {}) as IDataObject;
+		const launchArguments = (options.launchArguments as IDataObject) || {};
 		const operation = this.getNodeParameter('operation', 0) as string;
 		const headless = options.headless !== false;
 		const stealth = options.stealth === true;
 		const pageCaching = options.pageCaching !== false;
+		const launchArgs: IDataObject[] = launchArguments.args as IDataObject[];
 		const args: string[] = [];
+
+		// More on launch arguments: https://www.chromium.org/developers/how-tos/run-chromium-with-flags/
+		if (launchArgs && launchArgs.length > 0) {
+			args.push(...launchArgs.map((arg: IDataObject) => arg.arg as string));
+		}
 
 		// More on proxying: https://www.chromium.org/developers/design-documents/network-settings
 		if (options.proxyServer) {
@@ -58,6 +65,7 @@ export class Puppeteer implements INodeType {
 		if (stealth) {
 			puppeteer.use(pluginStealth());
 		}
+
 		const browser = await puppeteer.launch({ headless, args });
 
 		for (let itemIndex: number = 0; itemIndex < items.length; itemIndex++) {
@@ -92,7 +100,7 @@ export class Puppeteer implements INodeType {
 			}
 
 			console.log(`Processing ${itemIndex+1} of ${items.length}: [${operation}]${device ? ` [${device}] ` : ' ' }${url}`);
-			
+
 			const waitUntil = options.waitUntil as PuppeteerLifeCycleEvent;
 			const timeout = options.timeout as number;
 			const response = await page.goto(url.toString(), { waitUntil, timeout });
@@ -156,8 +164,8 @@ export class Puppeteer implements INodeType {
 					}
 
 				} else if (operation === 'getPDF') {
-					const dataPropertyName = this.getNodeParameter('dataPropertyName', itemIndex) as string;					
-					const pageRanges = this.getNodeParameter('pageRanges', itemIndex) as string;					
+					const dataPropertyName = this.getNodeParameter('dataPropertyName', itemIndex) as string;
+					const pageRanges = this.getNodeParameter('pageRanges', itemIndex) as string;
 					const displayHeaderFooter = this.getNodeParameter('displayHeaderFooter', itemIndex) as boolean;
 					const omitBackground = this.getNodeParameter('omitBackground', itemIndex) as boolean;
 					const printBackground = this.getNodeParameter('printBackground', itemIndex) as boolean;
@@ -171,7 +179,7 @@ export class Puppeteer implements INodeType {
 					let height;
 					let width;
 					let format;
-					
+
 					if (displayHeaderFooter === true) {
 						headerTemplate = this.getNodeParameter('headerTemplate', itemIndex) as string;
 						footerTemplate = this.getNodeParameter('footerTemplate', itemIndex) as string;
@@ -185,7 +193,7 @@ export class Puppeteer implements INodeType {
 							format = this.getNodeParameter('format', itemIndex) as string;
 						}
 					}
-					
+
 					const pdfOptions: any = {
 						format,
 						displayHeaderFooter,
@@ -223,7 +231,7 @@ export class Puppeteer implements INodeType {
 			}
 
 			await page.close();
-			
+
 			if (returnItem) {
 				returnData.push(returnItem);
 			}
