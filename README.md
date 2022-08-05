@@ -2,7 +2,7 @@
 
 ![n8n.io - Workflow Automation](https://raw.githubusercontent.com/n8n-io/n8n/master/assets/n8n-logo.png)
 
-[n8n](https://www.n8n.io) node for requesting webpages using [Puppeteer](https://pptr.dev/), a Node library which provides a high-level API to control Chrome or Chromium over the [DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/). 
+[n8n](https://www.n8n.io) node for requesting webpages using [Puppeteer](https://pptr.dev/), a Node library which provides a high-level API to control Chrome or Chromium over the [DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/).
 
 ## How to install
 
@@ -32,9 +32,9 @@ For Docker-based deployments, you'll need to make sure [puppeteer is installed](
 
 Check out [this gist](https://gist.github.com/drudge/4be1238282a5db30b3786b5de394d13d) or [Marcus' example repo](https://github.com/maspio/n8n-puppeteer-docker) for a working example.
 
-> 
+>
 > **Note:** If you've having issues running puppeteer, please check their [Troubleshooting guide](https://github.com/puppeteer/puppeteer/blob/main/docs/troubleshooting.md) before opening an issue here.
-> 
+>
 
 ## Node Reference
 
@@ -56,21 +56,22 @@ Check out [this gist](https://gist.github.com/drudge/4be1238282a5db30b3786b5de39
         * **Page Caching**: Allows you to toggle whether pages should be cached when requesting.
         * **Headless mode**: Allows you to change whether to run browser runs in headless mode or not.
         * **Stealth mode**: When enabled, applies various techniques to make detection of headless Puppeteer harder. Powered by [puppeteer-extra-plugin-stealth](https://github.com/berstend/puppeteer-extra/tree/master/packages/puppeteer-extra-plugin-stealth).
+        * **Launch Arguments**: Allows you to specify additional command line arguments passed to the browser instance.
         * **Proxy Server**: Allows Puppeteer to use a custom proxy configuration. You can specify a custom proxy configuration in three ways:
             By providing a semi-colon-separated mapping of list scheme to url/port pairs.
             For example, you can specify:
-            
+
                 http=foopy:80;ftp=foopy2
-            
+
             to use HTTP proxy "foopy:80" for http URLs and HTTP proxy "foopy2:80" for ftp URLs.
-            
+
             By providing a single uri with optional port to use for all URLs.
             For example:
-            
+
                 foopy:8080
-            
+
             will use the proxy at foopy:8080 for all traffic.
-            
+
             By using the special "direct://" value.
 
                 direct://" will cause all connections to not use a proxy.
