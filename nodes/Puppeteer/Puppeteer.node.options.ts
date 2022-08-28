@@ -607,6 +607,14 @@ export const nodeDescription: INodeTypeDescription = {
 										description: 'Whether to run browser in headless mode. Defaults to true.',
 								},
 								{
+										displayName: 'Executable path',
+										name: 'executablePath',
+										type: 'string',
+										required: false,
+										default: null,
+										description: 'A path where Puppeteer expects to find the bundled browser.',
+								},
+								{
 										displayName: 'Stealth mode',
 										name: 'stealth',
 										type: 'boolean',
