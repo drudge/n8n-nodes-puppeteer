@@ -47,7 +47,7 @@ export class Puppeteer implements INodeType {
 		const launchArguments = (options.launchArguments as IDataObject) || {};
 		const operation = this.getNodeParameter('operation', 0) as string;
 		const headless = options.headless !== false;
-		const executablePath = options.executablePath;
+		const executablePath = options.executablePath as string;
 		const stealth = options.stealth === true;
 		const pageCaching = options.pageCaching !== false;
 		const launchArgs: IDataObject[] = launchArguments.args as IDataObject[];
@@ -66,15 +66,12 @@ export class Puppeteer implements INodeType {
 		if (stealth) {
 			puppeteer.use(pluginStealth());
 		}
-		const launchOptions: {headless: boolean, args: string[], executablePath?: string} = {
-			headless, args 
-		}
 
-		if(executablePath) {
-			launchOptions.executablePath = executablePath as string;
-		}
-		
-		const browser = await puppeteer.launch(launchOptions);
+		const browser = await puppeteer.launch({
+			headless,
+			args,
+			executablePath,
+		});
 
 		for (let itemIndex: number = 0; itemIndex < items.length; itemIndex++) {
 			const urlString = this.getNodeParameter('url', itemIndex) as string;
