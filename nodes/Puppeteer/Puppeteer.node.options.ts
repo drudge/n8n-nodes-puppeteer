@@ -444,6 +444,15 @@ export const nodeDescription: INodeTypeDescription = {
 			default: {},
 			options: [
 				{
+					displayName: "Browser WebSocket Endpoint",
+					name: "browserWSEndpoint",
+					type: "string",
+					required: false,
+					default: "",
+					description:
+						"The WebSocket URL of the browser to connect to.",
+				},
+				{
 					displayName: "Emulate Device",
 					name: "device",
 					type: "options",

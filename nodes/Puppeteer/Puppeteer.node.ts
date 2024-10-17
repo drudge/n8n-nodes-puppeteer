@@ -1,6 +1,6 @@
-import { IExecuteFunctions } from 'n8n-core';
 import {
 	IDataObject,
+	IExecuteFunctions,
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
@@ -48,6 +48,7 @@ export class Puppeteer implements INodeType {
 		const operation = this.getNodeParameter('operation', 0) as string;
 		const headless = options.headless !== false;
 		const executablePath = options.executablePath as string;
+		const browserWSEndpoint = options.browserWSEndpoint as string;
 		const stealth = options.stealth === true;
 		const pageCaching = options.pageCaching !== false;
 		const launchArgs: IDataObject[] = launchArguments.args as IDataObject[];
@@ -67,11 +68,19 @@ export class Puppeteer implements INodeType {
 			puppeteer.use(pluginStealth());
 		}
 
-		const browser = await puppeteer.launch({
-			headless,
-			args,
-			executablePath,
-		});
+		let browser;
+		if (browserWSEndpoint) {
+			browser = await puppeteer.connect({
+				browserWSEndpoint,
+				ignoreHTTPSErrors: true,
+			});
+		} else {
+			browser = await puppeteer.launch({
+				headless,
+				args,
+				executablePath,
+			});
+		}
 
 		for (let itemIndex: number = 0; itemIndex < items.length; itemIndex++) {
 			const urlString = this.getNodeParameter('url', itemIndex) as string;
@@ -109,8 +118,8 @@ export class Puppeteer implements INodeType {
 			const waitUntil = options.waitUntil as PuppeteerLifeCycleEvent;
 			const timeout = options.timeout as number;
 			const response = await page.goto(url.toString(), { waitUntil, timeout });
-			const headers = await response.headers();
-			const statusCode = response.status();
+			const headers = await response?.headers();
+			const statusCode = response?.status();
 			let returnItem: any;
 
 			if (statusCode !== 200) {
