@@ -633,6 +633,15 @@ export const nodeDescription: INodeTypeDescription = {
 						"Whether to run browser in headless mode. Defaults to true.",
 				},
 				{
+					displayName: "Use Chrome Headless Shell",
+					name: "shell",
+					type: "boolean",
+					required: false,
+					default: false,
+					description:
+						"Whether to run browser in headless shell mode. Defaults to false. Headless mode must be enabled. chrome-headless-shell must be in $PATH.",
+				},
+				{
 					displayName: "Stealth mode",
 					name: "stealth",
 					type: "boolean",

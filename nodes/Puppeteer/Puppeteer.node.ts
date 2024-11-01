@@ -47,7 +47,8 @@ export class Puppeteer implements INodeType {
 		const options = this.getNodeParameter("options", 0, {}) as IDataObject;
 		const launchArguments = (options.launchArguments as IDataObject) || {};
 		const operation = this.getNodeParameter("operation", 0) as string;
-		const headless = options.headless !== false;
+		let headless: "shell" | boolean = options.headless !== false;
+		const headlessShell = options.shell === true;
 		const executablePath = options.executablePath as string;
 		const browserWSEndpoint = options.browserWSEndpoint as string;
 		const stealth = options.stealth === true;
@@ -67,6 +68,10 @@ export class Puppeteer implements INodeType {
 
 		if (stealth) {
 			puppeteer.use(pluginStealth());
+		}
+
+		if (headless && headlessShell) {
+			headless = 'shell';
 		}
 
 		let browser;
