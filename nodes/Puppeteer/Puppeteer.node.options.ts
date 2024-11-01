@@ -484,12 +484,13 @@ export const nodeDescription: INodeTypeDescription = {
 					type: "string",
 					required: false,
 					default: "",
-					description: "The WebSocket URL of the browser to connect to.",
+					description: "The WebSocket URL of the browser to connect to. When configured, puppeteer will skip the browser launch and connect to the browser instance.",
 				},
 				{
 					displayName: "Emulate Device",
 					name: "device",
 					type: "options",
+					description: "Emulate a specific device. Has no effect on the 'Run Custom Script' operation.",
 					default: "",
 					typeOptions: {
 						loadOptionsMethod: "getDevices",
@@ -503,7 +504,7 @@ export const nodeDescription: INodeTypeDescription = {
 					required: false,
 					default: "",
 					description:
-						"A path where Puppeteer expects to find the bundled browser.",
+						"A path where Puppeteer expects to find the bundled browser. Has no effect when 'Browser WebSocket Endpoint' is set.",
 				},
 				{
 					displayName: "Extra Headers",
@@ -513,7 +514,7 @@ export const nodeDescription: INodeTypeDescription = {
 					typeOptions: {
 						multipleValues: true,
 					},
-					description: "The headers to send.",
+					description: "The headers to send. Has no effect on the 'Run Custom Script' operation.",
 					default: {},
 					options: [
 						{
@@ -543,7 +544,7 @@ export const nodeDescription: INodeTypeDescription = {
 					name: "fileName",
 					type: "string",
 					default: "",
-					description: "File name to set in binary data.",
+					description: "File name to set in binary data. Only applies to 'Get PDF' and 'Get Screenshot' operations.",
 				},
 				{
 					displayName: "Launch Arguments",
@@ -554,7 +555,7 @@ export const nodeDescription: INodeTypeDescription = {
 						multipleValues: true,
 					},
 					description:
-						"Additional command line arguments to pass to the browser instance.",
+						"Additional command line arguments to pass to the browser instance. Has no effect when 'Browser WebSocket Endpoint' is set.",
 					default: {},
 					options: [
 						{
@@ -582,7 +583,7 @@ export const nodeDescription: INodeTypeDescription = {
 					},
 					default: 30,
 					description:
-						"Maximum navigation time in milliseconds. Pass 0 to disable timeout.",
+						"Maximum navigation time in milliseconds. Pass 0 to disable timeout. Has no effect on the 'Run Custom Script' operation.",
 				},
 				{
 					displayName: "Wait Until",
@@ -611,7 +612,7 @@ export const nodeDescription: INodeTypeDescription = {
 						},
 					],
 					default: "load",
-					description: "When to consider navigation succeeded.",
+					description: "When to consider navigation succeeded. Has no effect on the 'Run Custom Script' operation.",
 				},
 				{
 					displayName: "Page Caching",
@@ -620,7 +621,7 @@ export const nodeDescription: INodeTypeDescription = {
 					required: false,
 					default: true,
 					description:
-						"Whether to enable page level caching. Defaults to true.",
+						"Whether to enable page level caching. Defaults to true. Has no effect on the 'Run Custom Script' operation.",
 				},
 				{
 					displayName: "Headless mode",
