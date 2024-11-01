@@ -7,12 +7,32 @@ import {
 	ILoadOptionsFunctions,
 	INodePropertyOptions,
 } from "n8n-workflow";
+import { NodeVM, makeResolverFromLegacyOptions } from '@n8n/vm2';
 
 import puppeteer from "puppeteer-extra";
 import pluginStealth from "puppeteer-extra-plugin-stealth";
-import { KnownDevices as devices, Device, PuppeteerLifeCycleEvent, ScreenshotOptions } from "puppeteer";
+import {
+	KnownDevices as devices,
+	Device,
+	PuppeteerLifeCycleEvent,
+	ScreenshotOptions,
+} from "puppeteer";
 
 import { nodeDescription } from "./Puppeteer.node.options";
+
+const { NODE_FUNCTION_ALLOW_BUILTIN: builtIn, NODE_FUNCTION_ALLOW_EXTERNAL: external } =
+	process.env;
+
+export const vmResolver = makeResolverFromLegacyOptions({
+	external: external
+		? {
+				modules: external.split(','),
+				transitive: false,
+			}
+		: false,
+	builtin: builtIn?.split(',') ?? [],
+});
+
 
 const DEFAULT_USER_AGENT =
 	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36";
@@ -71,7 +91,7 @@ export class Puppeteer implements INodeType {
 		}
 
 		if (headless && headlessShell) {
-			headless = 'shell';
+			headless = "shell";
 		}
 
 		let browser;
@@ -93,66 +113,27 @@ export class Puppeteer implements INodeType {
 			const page = await browser.newPage();
 
 			if (operation === "runCustomScript") {
+				const vm = new NodeVM({
+					console: 'redirect',
+					sandbox: {
+						$browser: browser,
+						$page: page,
+						$input: items[itemIndex],
+						$json: items[itemIndex].json,
+						$items: items,
+					},
+					require: options?.resolver ?? vmResolver,
+					wasm: false,
+				});
 				const scriptCode = this.getNodeParameter(
 					"scriptCode",
 					itemIndex,
 				) as string;
+
+				let scriptResult;
 				try {
-					const scriptFunction = new Function(
-						"$browser",
-						"$page",
-						"$input",
-						"$json",
-						"$items",
-						`return (async () => { ${scriptCode} })();`,
-					);
-
-					let scriptResult;
-					try {
-						scriptResult = await scriptFunction(browser, page, items[itemIndex], items[itemIndex].json, items);
-					} catch (error: Error | any) {
-						if (this.continueOnFail() !== true) {
-							throw error;
-						} else {
-							returnData.push({
-								json: { error: error.message },
-								pairedItem: {
-									item: itemIndex,
-								},
-							});
-							continue;
-						}
-					}
-
+					scriptResult = await vm.run(`module.exports = async function() { ${scriptCode}\n}()`);
 					// console.log("Script Result:", scriptResult);
-
-					if (!Array.isArray(scriptResult)) {
-						if (this.continueOnFail() !== true) {
-							throw new Error(
-								"Custom script must return an array of items. Please ensure your script returns an array, e.g., return [{ key: value }].",
-							);
-						} else {
-							returnData.push({
-								json: {
-									error:
-										"Custom script must return an array of items. Please ensure your script returns an array, e.g., return [{ key: value }].",
-								},
-								pairedItem: {
-									item: itemIndex,
-								},
-							});
-						}
-						continue;
-					}
-
-					const autoJson = scriptResult.map((json: any) => ({
-						json,
-						pairedItem: {
-							item: itemIndex,
-						},
-					}));
-
-					returnData.push(...autoJson);
 				} catch (error: Error | any) {
 					if (this.continueOnFail() !== true) {
 						throw error;
@@ -166,6 +147,34 @@ export class Puppeteer implements INodeType {
 						continue;
 					}
 				}
+
+				if (!Array.isArray(scriptResult)) {
+					if (this.continueOnFail() !== true) {
+						throw new Error(
+							"Custom script must return an array of items. Please ensure your script returns an array, e.g., return [{ key: value }].",
+						);
+					} else {
+						returnData.push({
+							json: {
+								error:
+									"Custom script must return an array of items. Please ensure your script returns an array, e.g., return [{ key: value }].",
+							},
+							pairedItem: {
+								item: itemIndex,
+							},
+						});
+					}
+					continue;
+				}
+
+				const autoJson = scriptResult.map((json: any) => ({
+					json,
+					pairedItem: {
+						item: itemIndex,
+					},
+				}));
+
+				returnData.push(...autoJson);
 			} else {
 				const urlString = this.getNodeParameter("url", itemIndex) as string;
 				const { parameter: someHeaders = [] } = (options.headers || {}) as any;
@@ -184,7 +193,9 @@ export class Puppeteer implements INodeType {
 				await page.setCacheEnabled(pageCaching);
 
 				if (device) {
-					const emulatedDevice = devices[device as keyof typeof devices] as Device;
+					const emulatedDevice = devices[
+						device as keyof typeof devices
+					] as Device;
 					if (emulatedDevice) {
 						await page.emulate(emulatedDevice);
 					}
@@ -270,7 +281,9 @@ export class Puppeteer implements INodeType {
 							screenshotOptions.path = fileName;
 						}
 
-						const screenshot = await page.screenshot(screenshotOptions) as Uint8Array;
+						const screenshot = (await page.screenshot(
+							screenshotOptions,
+						)) as Uint8Array;
 						if (screenshot) {
 							const binaryData = await this.helpers.prepareBinaryData(
 								Buffer.from(screenshot),
@@ -366,7 +379,7 @@ export class Puppeteer implements INodeType {
 						if (fileName) {
 							pdfOptions.path = fileName;
 						}
-						const pdf = await page.pdf(pdfOptions) as Uint8Array;
+						const pdf = (await page.pdf(pdfOptions)) as Uint8Array;
 						if (pdf) {
 							const binaryData = await this.helpers.prepareBinaryData(
 								Buffer.from(pdf),

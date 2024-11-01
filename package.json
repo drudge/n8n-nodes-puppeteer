@@ -5,57 +5,58 @@
   "license": "MIT",
   "homepage": "https://github.com/drudge/n8n-nodes-puppeteer",
   "author": {
-      "name": "Nicholas Penree",
-      "email": "nick@penree.com"
+    "name": "Nicholas Penree",
+    "email": "nick@penree.com"
   },
   "repository": {
-      "type": "git",
-      "url": "git+https://github.com/drudge/n8n-nodes-puppeteer.git"
+    "type": "git",
+    "url": "git+https://github.com/drudge/n8n-nodes-puppeteer.git"
   },
   "main": "index.js",
   "scripts": {
-      "dev": "npm run watch",
-      "build": "tsc && gulp",
-      "lint": "tslint -p tsconfig.json -c tslint.json",
-      "lintfix": "tslint --fix -p tsconfig.json -c tslint.json",
-      "nodelinter": "nodelinter",
-      "watch": "tsc --watch"
+    "dev": "npm run watch",
+    "build": "tsc && gulp",
+    "lint": "tslint -p tsconfig.json -c tslint.json",
+    "lintfix": "tslint --fix -p tsconfig.json -c tslint.json",
+    "nodelinter": "nodelinter",
+    "watch": "tsc --watch"
   },
   "files": [
-      "dist"
+    "dist"
   ],
   "keywords": [
-      "n8n",
-      "node",
-      "puppeteer",
-      "scraper",
-      "screenshot",
-      "pdf",
-      "n8n-node",
-      "n8n-community-node-package"
+    "n8n",
+    "node",
+    "puppeteer",
+    "scraper",
+    "screenshot",
+    "pdf",
+    "n8n-node",
+    "n8n-community-node-package"
   ],
   "n8n": {
-      "n8nNodesApiVersion": 1,
-      "credentials": [],
-      "nodes": [
-          "dist/nodes/Puppeteer/Puppeteer.node.js"
-      ]
+    "n8nNodesApiVersion": 1,
+    "credentials": [],
+    "nodes": [
+      "dist/nodes/Puppeteer/Puppeteer.node.js"
+    ]
   },
   "devDependencies": {
-      "@typescript-eslint/parser": "^7.15.0",
-      "eslint": "^8.56.0",
-      "eslint-plugin-n8n-nodes-base": "^1.16.3",
-      "gulp": "^5.0.0",
-      "n8n-workflow": "*",
-      "prettier": "^3.3.2",
-      "typescript": "^5.5.3"
+    "@typescript-eslint/parser": "^7.15.0",
+    "eslint": "^8.56.0",
+    "eslint-plugin-n8n-nodes-base": "^1.16.3",
+    "gulp": "^5.0.0",
+    "n8n-workflow": "*",
+    "prettier": "^3.3.2",
+    "typescript": "^5.5.3"
   },
   "peerDependencies": {
-      "n8n-workflow": "*"
+    "n8n-workflow": "*"
   },
   "dependencies": {
-      "puppeteer": "^23.6.1",
-      "puppeteer-extra": "^3.3.6",
-      "puppeteer-extra-plugin-stealth": "^2.11.2"
+    "@n8n/vm2": "^3.9.25",
+    "puppeteer": "^23.6.1",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
   }
 }
