@@ -10,7 +10,7 @@ import {
 
 import puppeteer from "puppeteer-extra";
 import pluginStealth from "puppeteer-extra-plugin-stealth";
-import { devices, PuppeteerLifeCycleEvent, ScreenshotOptions } from "puppeteer";
+import { KnownDevices as devices, Device, PuppeteerLifeCycleEvent, ScreenshotOptions } from "puppeteer";
 
 import { nodeDescription } from "./Puppeteer.node.options";
 
@@ -28,7 +28,7 @@ export class Puppeteer implements INodeType {
 				const returnData: INodePropertyOptions[] = [];
 
 				for (const name of deviceNames) {
-					const device = devices[name];
+					const device = devices[name as keyof typeof devices] as Device;
 					returnData.push({
 						name,
 						value: name,
@@ -73,7 +73,6 @@ export class Puppeteer implements INodeType {
 		if (browserWSEndpoint) {
 			browser = await puppeteer.connect({
 				browserWSEndpoint,
-				ignoreHTTPSErrors: true,
 			});
 		} else {
 			browser = await puppeteer.launch({
@@ -180,7 +179,7 @@ export class Puppeteer implements INodeType {
 				await page.setCacheEnabled(pageCaching);
 
 				if (device) {
-					const emulatedDevice = devices[device];
+					const emulatedDevice = devices[device as keyof typeof devices] as Device;
 					if (emulatedDevice) {
 						await page.emulate(emulatedDevice);
 					}
@@ -266,12 +265,10 @@ export class Puppeteer implements INodeType {
 							screenshotOptions.path = fileName;
 						}
 
-						const screenshot = (await page.screenshot(
-							screenshotOptions,
-						)) as Buffer;
+						const screenshot = await page.screenshot(screenshotOptions) as Uint8Array;
 						if (screenshot) {
 							const binaryData = await this.helpers.prepareBinaryData(
-								screenshot,
+								Buffer.from(screenshot),
 								screenshotOptions.path,
 								`image/${type}`,
 							);
@@ -364,10 +361,10 @@ export class Puppeteer implements INodeType {
 						if (fileName) {
 							pdfOptions.path = fileName;
 						}
-						const pdf = (await page.pdf(pdfOptions)) as Buffer;
+						const pdf = await page.pdf(pdfOptions) as Uint8Array;
 						if (pdf) {
 							const binaryData = await this.helpers.prepareBinaryData(
-								pdf,
+								Buffer.from(pdf),
 								pdfOptions.path,
 								"application/pdf",
 							);

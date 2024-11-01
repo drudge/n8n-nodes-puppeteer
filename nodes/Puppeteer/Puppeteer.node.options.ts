@@ -1,4 +1,4 @@
-import { INodeTypeDescription } from "n8n-workflow";
+import { INodeTypeDescription, NodeConnectionType } from "n8n-workflow";
 
 /**
  * Options to be displayed
@@ -14,8 +14,8 @@ export const nodeDescription: INodeTypeDescription = {
 		color: "#125580",
 	},
 	icon: "file:puppeteer.svg",
-	inputs: ["main"],
-	outputs: ["main"],
+	inputs: [NodeConnectionType.Main],
+	outputs: [NodeConnectionType.Main],
 	properties: [
 		{
 			displayName: "URL",

@@ -54,7 +54,7 @@
       "n8n-workflow": "*"
   },
   "dependencies": {
-      "puppeteer": "^18.2.1",
+      "puppeteer": "^23.6.1",
       "puppeteer-extra": "^3.3.6",
       "puppeteer-extra-plugin-stealth": "^2.11.2"
   }
