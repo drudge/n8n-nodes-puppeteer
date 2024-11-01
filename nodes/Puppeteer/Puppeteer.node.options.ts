@@ -23,6 +23,11 @@ export const nodeDescription: INodeTypeDescription = {
 			type: "string",
 			required: true,
 			default: "",
+			displayOptions: {
+				show: {
+					operation: ["getPageContent", "getScreenshot", "getPDF"],
+				},
+			},
 		},
 		{
 			displayName: "Operation",
@@ -44,8 +49,33 @@ export const nodeDescription: INodeTypeDescription = {
 					value: "getScreenshot",
 					description: "Captures all or part of the page as an image",
 				},
+				{
+					name: "Run Custom Script",
+					value: "runCustomScript",
+					description: "Run your own custom code",
+				},
 			],
 			default: "getPageContent",
+		},
+		{
+			displayName: "Script Code",
+			name: "scriptCode",
+			type: "string",
+			typeOptions: {
+				// @ts-ignore
+				editor: "codeNodeEditor",
+				editorLanguage: "javaScript",
+			},
+			required: true,
+			default:
+				"// Navigate to an IP lookup service\nawait $page.goto('https://httpbin.org/ip');\n\n// Extract the IP address from the page content\nconst ipData = await $page.evaluate(() => {\n    const response = document.body.innerText;\n    const parsed = JSON.parse(response);\n    return parsed.origin;  // Extract the 'origin' field, which typically contains the IP address\n});\n\n// Return the result in the required format\nreturn [{ ip: ipData }];",
+			description:
+				"JavaScript code to execute with Puppeteer. You have access to the $browser and $page objects, which represent the Puppeteer browser and page.",
+			displayOptions: {
+				show: {
+					operation: ["runCustomScript"],
+				},
+			},
 		},
 		{
 			displayName: "Property Name",
@@ -411,6 +441,11 @@ export const nodeDescription: INodeTypeDescription = {
 			typeOptions: {
 				multipleValues: true,
 			},
+			displayOptions: {
+				show: {
+					operation: ["getPageContent", "getScreenshot", "getPDF"],
+				},
+			},
 			description: "The query parameter to send.",
 			default: {},
 			options: [
@@ -449,8 +484,7 @@ export const nodeDescription: INodeTypeDescription = {
 					type: "string",
 					required: false,
 					default: "",
-					description:
-						"The WebSocket URL of the browser to connect to.",
+					description: "The WebSocket URL of the browser to connect to.",
 				},
 				{
 					displayName: "Emulate Device",
