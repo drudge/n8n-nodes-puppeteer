@@ -501,7 +501,7 @@ export const nodeDescription: INodeTypeDescription = {
 					displayName: 'Emulate Device',
 					name: 'device',
 					type: 'options',
-					description: 'Emulate a specific device. Has no effect on the \'Run Custom Script\' operation.',
+					description: 'Emulate a specific device.',
 					default: '',
 					typeOptions: {
 						loadOptionsMethod: 'getDevices',
@@ -525,7 +525,7 @@ export const nodeDescription: INodeTypeDescription = {
 					typeOptions: {
 						multipleValues: true,
 					},
-					description: 'The headers to send. Has no effect on the \'Run Custom Script\' operation.',
+					description: 'The headers to send.',
 					default: {},
 					options: [
 						{
@@ -632,7 +632,7 @@ export const nodeDescription: INodeTypeDescription = {
 					required: false,
 					default: true,
 					description:
-						'Whether to enable page level caching. Defaults to true. Has no effect on the \'Run Custom Script\' operation.',
+						'Whether to enable page level caching. Defaults to true.',
 				},
 				{
 					displayName: 'Headless mode',
