@@ -1,21 +1,167 @@
 import {
 	IDataObject,
 	IExecuteFunctions,
+	ILoadOptionsFunctions,
 	INodeExecutionData,
+	INodePropertyOptions,
 	INodeType,
 	INodeTypeDescription,
-	ILoadOptionsFunctions,
-	INodePropertyOptions,
-} from "n8n-workflow";
+} from 'n8n-workflow';
+import { makeResolverFromLegacyOptions, NodeVM } from '@n8n/vm2';
 
-import puppeteer from "puppeteer-extra";
-import pluginStealth from "puppeteer-extra-plugin-stealth";
-import { devices, PuppeteerLifeCycleEvent, ScreenshotOptions } from "puppeteer";
+import puppeteer from 'puppeteer-extra';
+import pluginStealth from 'puppeteer-extra-plugin-stealth';
+import {
+	Browser,
+	Device,
+	KnownDevices as devices,
+	Page,
+	PaperFormat,
+	PDFOptions,
+	PuppeteerLifeCycleEvent,
+	ScreenshotOptions,
+} from 'puppeteer';
 
-import { nodeDescription } from "./Puppeteer.node.options";
+import { nodeDescription } from './Puppeteer.node.options';
+
+const {
+	NODE_FUNCTION_ALLOW_BUILTIN: builtIn,
+	NODE_FUNCTION_ALLOW_EXTERNAL: external,
+} = process.env;
+
+export const vmResolver = makeResolverFromLegacyOptions({
+	external: external
+		? {
+				modules: external.split(','),
+				transitive: false,
+			}
+		: false,
+	builtin: builtIn?.split(',') ?? [],
+});
+
+interface HeaderObject {
+	[key: string]: string;
+}
+
+interface QueryParameter {
+	name: string;
+	value: string;
+}
 
 const DEFAULT_USER_AGENT =
-	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36";
+	'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36';
+
+async function handleOptions(
+	this: IExecuteFunctions,
+	itemIndex: number,
+	items: INodeExecutionData[],
+	browser: Browser,
+	page: Page,
+): Promise<void> {
+	const options = this.getNodeParameter('options', 0, {}) as IDataObject;
+	const pageCaching = options.pageCaching !== false;
+	const headers: HeaderObject = (options.headers || {}) as HeaderObject;
+
+	const requestHeaders = Object.entries(headers).reduce(
+		(acc: Record<string, string>, [key, value]) => {
+			acc[key] = value;
+			return acc;
+		},
+		{},
+	);
+	const device = options.device as string;
+
+	await page.setCacheEnabled(pageCaching);
+
+	if (device) {
+		const emulatedDevice = devices[device as keyof typeof devices] as Device;
+		if (emulatedDevice) {
+			await page.emulate(emulatedDevice);
+		}
+	} else {
+		const userAgent =
+			requestHeaders['User-Agent'] ||
+			requestHeaders['user-agent'] ||
+			DEFAULT_USER_AGENT;
+		await page.setUserAgent(userAgent);
+	}
+
+	await page.setExtraHTTPHeaders(requestHeaders);
+}
+
+async function runCustomScript(
+	this: IExecuteFunctions,
+	itemIndex: number,
+	items: INodeExecutionData[],
+	browser: Browser,
+	page: Page,
+): Promise<INodeExecutionData[]> {
+	const returnData: INodeExecutionData[] = [];
+	const vm = new NodeVM({
+		console: 'redirect',
+		sandbox: {
+			$browser: browser,
+			$page: page,
+			$input: items[itemIndex],
+			$json: items[itemIndex].json,
+			$items: items,
+		},
+		require: vmResolver,
+		wasm: false,
+	});
+	const scriptCode = this.getNodeParameter('scriptCode', itemIndex) as string;
+
+	let scriptResult;
+	try {
+		scriptResult = await vm.run(
+			`module.exports = async function() { ${scriptCode}\n}()`,
+		);
+		// console.log("Script Result:", scriptResult);
+	} catch (error: unknown) {
+		if (this.continueOnFail() !== true) {
+			throw error as Error;
+		} else {
+			returnData.push({
+				json: { error: (error as Error).message },
+				pairedItem: {
+					item: itemIndex,
+				},
+			});
+			return returnData;
+		}
+	}
+
+	if (!Array.isArray(scriptResult)) {
+		if (this.continueOnFail() !== true) {
+			throw new Error(
+				'Custom script must return an array of items. Please ensure your script returns an array, e.g., return [{ key: value }].',
+			);
+		} else {
+			returnData.push({
+				json: {
+					error:
+						'Custom script must return an array of items. Please ensure your script returns an array, e.g., return [{ key: value }].',
+				},
+				pairedItem: {
+					item: itemIndex,
+				},
+			});
+		}
+		return returnData;
+	}
+
+	const autoJson = scriptResult.map((json: IDataObject) => ({
+		json,
+		pairedItem: {
+			item: itemIndex,
+		},
+	}));
+
+	returnData.push(...autoJson);
+
+	return returnData;
+}
+
 export class Puppeteer implements INodeType {
 	description: INodeTypeDescription = nodeDescription;
 
@@ -28,7 +174,7 @@ export class Puppeteer implements INodeType {
 				const returnData: INodePropertyOptions[] = [];
 
 				for (const name of deviceNames) {
-					const device = devices[name];
+					const device = devices[name as keyof typeof devices] as Device;
 					returnData.push({
 						name,
 						value: name,
@@ -44,16 +190,22 @@ export class Puppeteer implements INodeType {
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items: INodeExecutionData[] = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
-		const options = this.getNodeParameter("options", 0, {}) as IDataObject;
+		const options = this.getNodeParameter('options', 0, {}) as IDataObject;
 		const launchArguments = (options.launchArguments as IDataObject) || {};
-		const operation = this.getNodeParameter("operation", 0) as string;
-		const headless = options.headless !== false;
+		const operation = this.getNodeParameter('operation', 0) as string;
+		let headless: 'shell' | boolean = options.headless !== false;
+		const headlessShell = options.shell === true;
 		const executablePath = options.executablePath as string;
 		const browserWSEndpoint = options.browserWSEndpoint as string;
 		const stealth = options.stealth === true;
-		const pageCaching = options.pageCaching !== false;
 		const launchArgs: IDataObject[] = launchArguments.args as IDataObject[];
 		const args: string[] = [];
+		const device = options.device as string;
+		let batchSize = options.batchSize as number;
+
+		if (!Number.isInteger(batchSize) || batchSize < 1) {
+			batchSize = 1;
+		}
 
 		// More on launch arguments: https://www.chromium.org/developers/how-tos/run-chromium-with-flags/
 		if (launchArgs && launchArgs.length > 0) {
@@ -69,11 +221,14 @@ export class Puppeteer implements INodeType {
 			puppeteer.use(pluginStealth());
 		}
 
+		if (headless && headlessShell) {
+			headless = 'shell';
+		}
+
 		let browser;
 		if (browserWSEndpoint) {
 			browser = await puppeteer.connect({
 				browserWSEndpoint,
-				ignoreHTTPSErrors: true,
 			});
 		} else {
 			browser = await puppeteer.launch({
@@ -82,124 +237,44 @@ export class Puppeteer implements INodeType {
 				executablePath,
 			});
 		}
-
-		let returnItem: any;
-
-		for (let itemIndex: number = 0; itemIndex < items.length; itemIndex++) {
+		const processItem = async (
+			item: INodeExecutionData,
+			itemIndex: number,
+		): Promise<INodeExecutionData[]> => {
+			let returnItem: INodeExecutionData[] = [];
 			const page = await browser.newPage();
 
-			if (operation === "runCustomScript") {
-				const scriptCode = this.getNodeParameter(
-					"scriptCode",
+			await handleOptions.call(this, itemIndex, items, browser, page);
+
+			if (operation === 'runCustomScript') {
+				console.log(
+					`Processing ${itemIndex + 1} of ${items.length}: [${operation}]${device ? ` [${device}] ` : ' '} Custom Script`,
+				);
+				returnItem = await runCustomScript.call(
+					this,
 					itemIndex,
-				) as string;
-				try {
-					const scriptFunction = new Function(
-						"$browser",
-						"$page",
-						"$input",
-						"$json",
-						"$items",
-						`return (async () => { ${scriptCode} })();`,
-					);
-
-					let scriptResult;
-					try {
-						scriptResult = await scriptFunction(browser, page, items[itemIndex], items[itemIndex].json, items);
-					} catch (error: Error | any) {
-						if (this.continueOnFail() !== true) {
-							throw error;
-						} else {
-							returnData.push({
-								json: { error: error.message },
-								pairedItem: {
-									item: itemIndex,
-								},
-							});
-							continue;
-						}
-					}
-
-					// console.log("Script Result:", scriptResult);
-
-					if (!Array.isArray(scriptResult)) {
-						if (this.continueOnFail() !== true) {
-							throw new Error(
-								"Custom script must return an array of items. Please ensure your script returns an array, e.g., return [{ key: value }].",
-							);
-						} else {
-							returnData.push({
-								json: {
-									error:
-										"Custom script must return an array of items. Please ensure your script returns an array, e.g., return [{ key: value }].",
-								},
-								pairedItem: {
-									item: itemIndex,
-								},
-							});
-						}
-						continue;
-					}
-
-					const autoJson = scriptResult.map((json: any) => ({
-						json,
-						pairedItem: {
-							item: itemIndex,
-						},
-					}));
-
-					returnData.push(...autoJson);
-				} catch (error: Error | any) {
-					if (this.continueOnFail() !== true) {
-						throw error;
-					} else {
-						returnData.push({
-							json: { error: error.message },
-							pairedItem: {
-								item: itemIndex,
-							},
-						});
-						continue;
-					}
-				}
+					items,
+					browser,
+					page,
+				);
 			} else {
-				const urlString = this.getNodeParameter("url", itemIndex) as string;
-				const { parameter: someHeaders = [] } = (options.headers || {}) as any;
-				const { parameter: queryParameters = [] } = this.getNodeParameter(
-					"queryParameters",
+				const urlString = this.getNodeParameter('url', itemIndex) as string;
+				const queryParametersOptions = this.getNodeParameter(
+					'queryParameters',
 					itemIndex,
-				) as any;
-				const requestHeaders = someHeaders.reduce((acc: any, cur: any) => {
-					acc[cur.name] = cur.value;
-					return acc;
-				}, {});
-				const device = options.device as string;
+					{},
+				) as IDataObject;
+
+				const queryParameters =
+					(queryParametersOptions.parameters as QueryParameter[]) || [];
 
 				const url = new URL(urlString);
-
-				await page.setCacheEnabled(pageCaching);
-
-				if (device) {
-					const emulatedDevice = devices[device];
-					if (emulatedDevice) {
-						await page.emulate(emulatedDevice);
-					}
-				} else {
-					const userAgent =
-						requestHeaders["User-Agent"] ||
-						requestHeaders["user-agent"] ||
-						DEFAULT_USER_AGENT;
-					await page.setUserAgent(userAgent);
-				}
-
-				await page.setExtraHTTPHeaders(requestHeaders);
-
 				for (const queryParameter of queryParameters) {
 					url.searchParams.append(queryParameter.name, queryParameter.value);
 				}
 
 				console.log(
-					`Processing ${itemIndex + 1} of ${items.length}: [${operation}]${device ? ` [${device}] ` : " "}${url}`,
+					`Processing ${itemIndex + 1} of ${items.length}: [${operation}]${device ? ` [${device}] ` : ' '}${url}`,
 				);
 
 				const waitUntil = options.waitUntil as PuppeteerLifeCycleEvent;
@@ -213,40 +288,50 @@ export class Puppeteer implements INodeType {
 
 				if (statusCode !== 200) {
 					if (this.continueOnFail() !== true) {
-						returnItem = {
-							json: {
-								headers,
-								statusCode,
+						returnItem = [
+							{
+								json: {
+									headers,
+									statusCode,
+								},
+								pairedItem: {
+									item: itemIndex,
+								},
 							},
-						};
-						if (operation === "getPageContent") {
-							returnItem.json.body = await page.content();
+						];
+						if (operation === 'getPageContent') {
+							returnItem[0].json.body = await page.content();
 						}
 					} else {
 						throw new Error(`Request failed with status code ${statusCode}`);
 					}
 				} else {
-					if (operation === "getPageContent") {
+					if (operation === 'getPageContent') {
 						const body = await page.content();
-						returnItem = {
-							json: {
-								body,
-								headers,
-								statusCode,
+						returnItem = [
+							{
+								json: {
+									body,
+									headers,
+									statusCode,
+								},
+								pairedItem: {
+									item: itemIndex,
+								},
 							},
-						};
-					} else if (operation === "getScreenshot") {
+						];
+					} else if (operation === 'getScreenshot') {
 						const dataPropertyName = this.getNodeParameter(
-							"dataPropertyName",
+							'dataPropertyName',
 							itemIndex,
 						) as string;
 						const fileName = options.fileName as string;
 						const type = this.getNodeParameter(
-							"imageType",
+							'imageType',
 							itemIndex,
-						) as ScreenshotOptions["type"];
+						) as ScreenshotOptions['type'];
 						const fullPage = this.getNodeParameter(
-							"fullPage",
+							'fullPage',
 							itemIndex,
 						) as boolean;
 						const screenshotOptions: ScreenshotOptions = {
@@ -254,9 +339,9 @@ export class Puppeteer implements INodeType {
 							fullPage,
 						};
 
-						if (type !== "png") {
+						if (type !== 'png') {
 							const quality = this.getNodeParameter(
-								"quality",
+								'quality',
 								itemIndex,
 							) as number;
 							screenshotOptions.quality = quality;
@@ -268,53 +353,58 @@ export class Puppeteer implements INodeType {
 
 						const screenshot = (await page.screenshot(
 							screenshotOptions,
-						)) as Buffer;
+						)) as Uint8Array;
 						if (screenshot) {
 							const binaryData = await this.helpers.prepareBinaryData(
-								screenshot,
+								Buffer.from(screenshot),
 								screenshotOptions.path,
 								`image/${type}`,
 							);
-							returnItem = {
-								binary: { [dataPropertyName]: binaryData },
-								json: {
-									headers,
-									statusCode,
+							returnItem = [
+								{
+									binary: { [dataPropertyName]: binaryData },
+									json: {
+										headers,
+										statusCode,
+									},
+									pairedItem: {
+										item: itemIndex,
+									},
 								},
-							};
+							];
 						}
-					} else if (operation === "getPDF") {
+					} else if (operation === 'getPDF') {
 						const dataPropertyName = this.getNodeParameter(
-							"dataPropertyName",
+							'dataPropertyName',
 							itemIndex,
 						) as string;
 						const pageRanges = this.getNodeParameter(
-							"pageRanges",
+							'pageRanges',
 							itemIndex,
 						) as string;
 						const displayHeaderFooter = this.getNodeParameter(
-							"displayHeaderFooter",
+							'displayHeaderFooter',
 							itemIndex,
 						) as boolean;
 						const omitBackground = this.getNodeParameter(
-							"omitBackground",
+							'omitBackground',
 							itemIndex,
 						) as boolean;
 						const printBackground = this.getNodeParameter(
-							"printBackground",
+							'printBackground',
 							itemIndex,
 						) as boolean;
 						const landscape = this.getNodeParameter(
-							"landscape",
+							'landscape',
 							itemIndex,
 						) as boolean;
 						const preferCSSPageSize = this.getNodeParameter(
-							"preferCSSPageSize",
+							'preferCSSPageSize',
 							itemIndex,
 						) as boolean;
-						const scale = this.getNodeParameter("scale", itemIndex) as number;
+						const scale = this.getNodeParameter('scale', itemIndex) as number;
 						const margin = this.getNodeParameter(
-							"margin",
+							'margin',
 							0,
 							{},
 						) as IDataObject;
@@ -327,25 +417,28 @@ export class Puppeteer implements INodeType {
 
 						if (displayHeaderFooter === true) {
 							headerTemplate = this.getNodeParameter(
-								"headerTemplate",
+								'headerTemplate',
 								itemIndex,
 							) as string;
 							footerTemplate = this.getNodeParameter(
-								"footerTemplate",
+								'footerTemplate',
 								itemIndex,
 							) as string;
 						}
 
 						if (preferCSSPageSize !== true) {
-							height = this.getNodeParameter("height", itemIndex) as string;
-							width = this.getNodeParameter("width", itemIndex) as string;
+							height = this.getNodeParameter('height', itemIndex) as string;
+							width = this.getNodeParameter('width', itemIndex) as string;
 
 							if (!height || !width) {
-								format = this.getNodeParameter("format", itemIndex) as string;
+								format = this.getNodeParameter(
+									'format',
+									itemIndex,
+								) as PaperFormat;
 							}
 						}
 
-						const pdfOptions: any = {
+						const pdfOptions: PDFOptions = {
 							format,
 							displayHeaderFooter,
 							omitBackground,
@@ -364,31 +457,41 @@ export class Puppeteer implements INodeType {
 						if (fileName) {
 							pdfOptions.path = fileName;
 						}
-						const pdf = (await page.pdf(pdfOptions)) as Buffer;
+						const pdf = (await page.pdf(pdfOptions)) as Uint8Array;
 						if (pdf) {
 							const binaryData = await this.helpers.prepareBinaryData(
-								pdf,
+								Buffer.from(pdf),
 								pdfOptions.path,
-								"application/pdf",
+								'application/pdf',
 							);
-							returnItem = {
-								binary: { [dataPropertyName]: binaryData },
-								json: {
-									headers,
-									statusCode,
+							returnItem = [
+								{
+									binary: { [dataPropertyName]: binaryData },
+									json: {
+										headers,
+										statusCode,
+									},
+									pairedItem: {
+										item: itemIndex,
+									},
 								},
-								pairedItem: {
-									item: itemIndex,
-								},
-							};
+							];
 						}
 					}
 				}
 			}
 			await page.close();
 
-			if (returnItem) {
-				returnData.push(returnItem);
+			return returnItem;
+		};
+
+		for (let i = 0; i < items.length; i += batchSize) {
+			const batch = items.slice(i, i + batchSize);
+			const results = await Promise.all(
+				batch.map((item, idx) => processItem(item, i + idx)),
+			);
+			if (results && results.length) {
+				returnData.push(...results.flat());
 			}
 		}
 
