@@ -105,6 +105,7 @@ async function runCustomScript(
 			$input: items[itemIndex],
 			$json: items[itemIndex].json,
 			$items: items,
+			$puppeteer: puppeteer,
 		},
 		require: vmResolver,
 		wasm: false,
