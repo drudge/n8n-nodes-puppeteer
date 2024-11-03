@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-puppeteer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "n8n node for working with Puppeteer",
   "license": "MIT",
   "homepage": "https://github.com/drudge/n8n-nodes-puppeteer",
