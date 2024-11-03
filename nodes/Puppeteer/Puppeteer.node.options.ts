@@ -52,7 +52,7 @@ export const nodeDescription: INodeTypeDescription = {
 				{
 					name: 'Run Custom Script',
 					value: 'runCustomScript',
-					description: 'Run your own custom code',
+					description: 'Runs custom code to perform specific actions on the page',
 				},
 			],
 			default: 'getPageContent',
@@ -68,7 +68,7 @@ export const nodeDescription: INodeTypeDescription = {
 			},
 			required: true,
 			default:
-				'// Navigate to an IP lookup service\nawait $page.goto(\'https://httpbin.org/ip\');\n\n// Extract the IP address from the page content\nconst ipData = await $page.evaluate(() => {\n    const response = document.body.innerText;\n    const parsed = JSON.parse(response);\n    return parsed.origin;  // Extract the \'origin\' field, which typically contains the IP address\n});\n\n// Return the result in the required format\nreturn [{ ip: ipData }];',
+				'// Navigate to an IP lookup service\nawait $page.goto(\'https://httpbin.org/ip\');\n\n// Extract the IP address from the page content\nconst ipData = await $page.evaluate(() => {\n    const response = document.body.innerText;\n    const parsed = JSON.parse(response);\n    return parsed.origin;  // Extract the \'origin\' field, which typically contains the IP address\n});\n\n// Return the result in the required format\nreturn [{ ip: ipData, ...$json }];',
 			description:
 				'JavaScript code to execute with Puppeteer. You have access to the $browser and $page objects, which represent the Puppeteer browser and page.',
 			displayOptions: {

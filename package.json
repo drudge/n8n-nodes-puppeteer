@@ -1,7 +1,7 @@
 {
   "name": "n8n-nodes-puppeteer",
   "version": "1.0.0",
-  "description": "n8n node for requesting webpages using Puppeteer",
+  "description": "n8n node for working with Puppeteer",
   "license": "MIT",
   "homepage": "https://github.com/drudge/n8n-nodes-puppeteer",
   "author": {
@@ -30,6 +30,7 @@
     "puppeteer",
     "scraper",
     "screenshot",
+    "script",
     "pdf",
     "n8n-node",
     "n8n-community-node-package"
