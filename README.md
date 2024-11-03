@@ -125,7 +125,7 @@ Check out [this gist](https://gist.github.com/drudge/4be1238282a5db30b3786b5de39
 
 MIT License
 
-Copyright (c) 2022 Nicholas Penree <nick@penree.com>
+Copyright (c) 2022-2024 Nicholas Penree <nick@penree.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
