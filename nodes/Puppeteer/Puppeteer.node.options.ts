@@ -607,9 +607,9 @@ export const nodeDescription: INodeTypeDescription = {
 							description: 'The load event is fired',
 						},
 						{
-							name: 'DOMContentLoaded',
-							value: 'DOMContentLoaded',
-							description: 'The DOMContentLoaded event is fired',
+							name: 'domcontentloaded',
+							value: 'domcontentloaded',
+							description: 'The domcontentloaded event is fired',
 						},
 						{
 							name: 'networkidle0',
