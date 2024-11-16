@@ -8,7 +8,7 @@ export const nodeDescription: INodeTypeDescription = {
 	name: 'puppeteer',
 	group: ['puppeteer'],
 	version: 1,
-	description: 'Request a webpage using Puppeteer',
+	description: 'Automate browser interactions using Puppeteer',
 	defaults: {
 		name: 'Puppeteer',
 		color: '#125580',
