@@ -155,10 +155,45 @@ console.log("IP Address", ipData);
 return [{ ip: ipData, ...$json }];
 ```
 
+### Storing and re-using cookies
+
+#### Node 1
+```javascript
+await $page.goto('https://www.example.com/login');
+
+// Perform login
+await $page.type('#login-username', 'user');
+await $page.type('#login-password', 'pass');
+await $page.click('#login-button');
+
+// Store cookies for later use
+const cookies = await $page.cookies();
+
+return [{ cookies }];
+```
+
+#### Node 2
+```javascript
+ const { cookies } = $input.first().json;
+
+// Restore cookies
+await $page.setCookie(...cookies);
+
+// Navigate to authenticated page
+await $page.goto('https://example.com/protected-page');
+
+// Perform authenticated operations
+const data = await $page.evaluate(() => {
+	return document.querySelector('.protected-content').textContent;
+});
+
+return [{ data }];
+```
+
 ### Working with Binary Data
 ```javascript
-await $page.goto('https://www.google.com')
-const imageData = await $page.screenshot({ type: 'png', encoding: 'base64' })
+await $page.goto('https://www.google.com');
+const imageData = await $page.screenshot({ type: 'png', encoding: 'base64' });
 return [
   {
     binary: {
@@ -169,7 +204,7 @@ return [
       },
     },
   }
-]
+];
 ```
 
 ## Screenshots
