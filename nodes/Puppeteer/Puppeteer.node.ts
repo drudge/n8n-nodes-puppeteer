@@ -27,6 +27,7 @@ import { nodeDescription } from './Puppeteer.node.options';
 const {
 	NODE_FUNCTION_ALLOW_BUILTIN: builtIn,
 	NODE_FUNCTION_ALLOW_EXTERNAL: external,
+	CODE_ENABLE_STDOUT,
 } = process.env;
 
 export const vmResolver = makeResolverFromLegacyOptions({
@@ -97,20 +98,36 @@ async function runCustomScript(
 	page: Page,
 ): Promise<INodeExecutionData[]> {
 	const returnData: INodeExecutionData[] = [];
+	const scriptCode = this.getNodeParameter('scriptCode', itemIndex) as string;
+	const context = {
+		$getNodeParameter: this.getNodeParameter,
+		$getWorkflowStaticData: this.getWorkflowStaticData,
+		helpers: {
+			...this.helpers,
+			httpRequestWithAuthentication: this.helpers.httpRequestWithAuthentication.bind(this),
+			requestWithAuthenticationPaginated: this.helpers.requestWithAuthenticationPaginated.bind(this),
+		},
+		...this.getWorkflowDataProxy(itemIndex),
+		$browser: browser,
+		$page: page,
+		$puppeteer: puppeteer,
+	};
 	const vm = new NodeVM({
 		console: 'redirect',
-		sandbox: {
-			$browser: browser,
-			$page: page,
-			$input: items[itemIndex],
-			$json: items[itemIndex].json,
-			$items: items,
-			$puppeteer: puppeteer,
-		},
+		sandbox: context,
 		require: vmResolver,
 		wasm: false,
 	});
-	const scriptCode = this.getNodeParameter('scriptCode', itemIndex) as string;
+
+	vm.on(
+		'console.log',
+		this.getMode() === 'manual'
+			? this.sendMessageToUI
+			: CODE_ENABLE_STDOUT === 'true'
+				? (...args: unknown[]) =>
+					console.log(`[Workflow "${this.getWorkflow().id}"][Node "${this.getNode().name}"]`, ...args)
+				: () => {},
+	);
 
 	let scriptResult;
 	try {
@@ -151,16 +168,9 @@ async function runCustomScript(
 		return returnData;
 	}
 
-	const autoJson = scriptResult.map((json: IDataObject) => ({
-		json,
-		pairedItem: {
-			item: itemIndex,
-		},
-	}));
+	returnData.push(...scriptResult);
 
-	returnData.push(...autoJson);
-
-	return returnData;
+	return this.helpers.normalizeItems(returnData);
 }
 
 export class Puppeteer implements INodeType {

@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-puppeteer",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "n8n node for working with Puppeteer",
   "license": "MIT",
   "homepage": "https://github.com/drudge/n8n-nodes-puppeteer",
@@ -57,7 +57,7 @@
   },
   "dependencies": {
     "@n8n/vm2": "^3.9.25",
-    "puppeteer": "^23.6.1",
+    "puppeteer": "^23.8.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2"
   }
