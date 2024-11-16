@@ -44,11 +44,12 @@ Check out [this gist](https://gist.github.com/drudge/4be1238282a5db30b3786b5de39
 - **Options**
 
   - All Operations
+
     - **Batch Size**: Maximum number of pages to open simeultaneously. More pages will consume more memory and CPU.
     - **Browser WebSocket Endpoint**: The WebSocket URL of the browser to connect to. When configured, puppeteer will skip the browser launch and connect to the browser instance.
     - **Emulate Device**: Allows you to specify a [device](https://github.com/puppeteer/puppeteer/blob/main/src/common/DeviceDescriptors.ts) to emulate when requesting the page.
     - **Executable Path**: A path where Puppeteer expects to find the bundled browser. Has no effect when 'Browser WebSocket Endpoint' is set.
-		- **Extra Headers**: Allows you add additional headers when requesting the page.
+    - **Extra Headers**: Allows you add additional headers when requesting the page.
     - **Timeout**: Allows you to specify tge maximum navigation time in milliseconds. You can pass 0 to disable the timeout entirely.
     - **Wait Until**: Allows you to change how Puppeteer considers navigation completed.
       - `load`: The load event is fired.
@@ -57,7 +58,7 @@ Check out [this gist](https://gist.github.com/drudge/4be1238282a5db30b3786b5de39
       - `networkidle2`: No more than 2 connections for at least 500 ms.
     - **Page Caching**: Allows you to toggle whether pages should be cached when requesting.
     - **Headless mode**: Allows you to change whether to run browser runs in headless mode or not.
-		- **Use Chrome Headless Shell**: Whether to run browser in headless shell mode. Defaults to false. Headless mode must be enabled. chrome-headless-shell must be in $PATH.
+    - **Use Chrome Headless Shell**: Whether to run browser in headless shell mode. Defaults to false. Headless mode must be enabled. chrome-headless-shell must be in $PATH.
     - **Stealth mode**: When enabled, applies various techniques to make detection of headless Puppeteer harder. Powered by [puppeteer-extra-plugin-stealth](https://github.com/berstend/puppeteer-extra/tree/master/packages/puppeteer-extra-plugin-stealth).
     - **Launch Arguments**: Allows you to specify additional command line arguments passed to the browser instance.
     - **Proxy Server**: Allows Puppeteer to use a custom proxy configuration. You can specify a custom proxy configuration in three ways:
@@ -120,6 +121,7 @@ Check out [this gist](https://gist.github.com/drudge/4be1238282a5db30b3786b5de39
 The Custom Script operation gives you complete control over Puppeteer to automate complex browser interactions, scrape data, generate PDFs/screenshots, and more. Scripts run in a sandboxed environment with access to the full Puppeteer API and n8n's Code node features.
 
 Before script execution, you can configure browser behavior using the operation's options like:
+
 - Emulate specific devices
 - Set custom headers
 - Enable stealth mode to avoid detection
@@ -128,6 +130,7 @@ Before script execution, you can configure browser behavior using the operation'
 - And more
 
 Access Puppeteer-specific objects using:
+
 - `$page` - Current page instance
 - `$browser` - Browser instance
 - `$puppeteer` - Puppeteer library
@@ -138,13 +141,13 @@ Plus all special variables and methods from the Code node are available. For a c
 
 ```javascript
 // Navigate to an IP lookup service
-await $page.goto('https://httpbin.org/ip');
+await $page.goto("https://httpbin.org/ip");
 
 // Extract the IP address from the page content
 const ipData = await $page.evaluate(() => {
-    const response = document.body.innerText;
-    const parsed = JSON.parse(response);
-    return parsed.origin;  // Extract the 'origin' field, which typically contains the IP address
+	const response = document.body.innerText;
+	const parsed = JSON.parse(response);
+	return parsed.origin; // Extract the 'origin' field, which typically contains the IP address
 });
 
 console.log("Hello, world!");
@@ -158,13 +161,14 @@ return [{ ip: ipData, ...$json }];
 ### Storing and re-using cookies
 
 #### Node 1
+
 ```javascript
-await $page.goto('https://www.example.com/login');
+await $page.goto("https://www.example.com/login");
 
 // Perform login
-await $page.type('#login-username', 'user');
-await $page.type('#login-password', 'pass');
-await $page.click('#login-button');
+await $page.type("#login-username", "user");
+await $page.type("#login-password", "pass");
+await $page.click("#login-button");
 
 // Store cookies for later use
 const cookies = await $page.cookies();
@@ -173,37 +177,39 @@ return [{ cookies }];
 ```
 
 #### Node 2
+
 ```javascript
- const { cookies } = $input.first().json;
+const { cookies } = $input.first().json;
 
 // Restore cookies
 await $page.setCookie(...cookies);
 
 // Navigate to authenticated page
-await $page.goto('https://example.com/protected-page');
+await $page.goto("https://example.com/protected-page");
 
 // Perform authenticated operations
 const data = await $page.evaluate(() => {
-	return document.querySelector('.protected-content').textContent;
+	return document.querySelector(".protected-content").textContent;
 });
 
 return [{ data }];
 ```
 
 ### Working with Binary Data
+
 ```javascript
-await $page.goto('https://www.google.com');
-const imageData = await $page.screenshot({ type: 'png', encoding: 'base64' });
+await $page.goto("https://www.google.com");
+const imageData = await $page.screenshot({ type: "png", encoding: "base64" });
 return [
-  {
-    binary: {
-      screenshot: {
-        data: imageData,
-        mimeType: 'image/png',
-        fileName: 'screenshot.png',
-      },
-    },
-  }
+	{
+		binary: {
+			screenshot: {
+				data: imageData,
+				mimeType: "image/png",
+				fileName: "screenshot.png",
+			},
+		},
+	},
 ];
 ```
 
