@@ -2,13 +2,13 @@
 
 ![n8n.io - Workflow Automation](https://raw.githubusercontent.com/n8n-io/n8n/master/assets/n8n-logo.png)
 
-[n8n](https://www.n8n.io) node for requesting webpages using [Puppeteer](https://pptr.dev/), a Node library which provides a high-level API to control Chrome or Chromium over the [DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/).
+[n8n](https://www.n8n.io) node for browser automation using [Puppeteer](https://pptr.dev/). Execute custom scripts, capture screenshots and PDFs, scrape content, and automate web interactions using Chrome/Chromium's DevTools Protocol. Full access to Puppeteer's API plus n8n's Code node capabilities makes this node powerful for any browser automation task.
 
 ## How to install
 
 ### Community Nodes (Recommended)
 
-For users on n8n v0.187+, your instance owner can install this node from [Community Nodes](https://docs.n8n.io/integrations/community-nodes/installation/).
+For n8n version 0.187 and later, you can install this node through the Community Nodes panel:
 
 1. Go to **Settings > Community Nodes**.
 2. Select **Install**.
@@ -52,7 +52,7 @@ Check out [this gist](https://gist.github.com/drudge/4be1238282a5db30b3786b5de39
     - **Timeout**: Allows you to specify tge maximum navigation time in milliseconds. You can pass 0 to disable the timeout entirely.
     - **Wait Until**: Allows you to change how Puppeteer considers navigation completed.
       - `load`: The load event is fired.
-      - `DOMContentLoaded`: The DOMContentLoaded event is fired.
+      - `domcontentloaded`: The DOMContentLoaded event is fired.
       - `networkidle0`: No more than 0 connections for at least 500 ms.
       - `networkidle2`: No more than 2 connections for at least 500 ms.
     - **Page Caching**: Allows you to toggle whether pages should be cached when requesting.
@@ -114,6 +114,63 @@ Check out [this gist](https://gist.github.com/drudge/4be1238282a5db30b3786b5de39
       - Accepts a value between 0-100.
       - Not applicable to PNG images.
     - **Full Page**: Allows you to capture a screen of the full scrollable content.
+
+## Custom Scripts
+
+The Custom Script operation gives you complete control over Puppeteer to automate complex browser interactions, scrape data, generate PDFs/screenshots, and more. Scripts run in a sandboxed environment with access to the full Puppeteer API and n8n's Code node features.
+
+Before script execution, you can configure browser behavior using the operation's options like:
+- Emulate specific devices
+- Set custom headers
+- Enable stealth mode to avoid detection
+- Configure proxy settings
+- Set page load timeouts
+- And more
+
+Access Puppeteer-specific objects using:
+- `$page` - Current page instance
+- `$browser` - Browser instance
+- `$puppeteer` - Puppeteer library
+
+Plus all special variables and methods from the Code node are available. For a complete reference, see the [n8n documentation](https://docs.n8n.io/code-examples/methods-variables-reference/). Just like n8n's Code node, anything you `console.log` will be shown in the browser's console during test mode or in stdout when configured.
+
+### Basic
+
+```javascript
+// Navigate to an IP lookup service
+await $page.goto('https://httpbin.org/ip');
+
+// Extract the IP address from the page content
+const ipData = await $page.evaluate(() => {
+    const response = document.body.innerText;
+    const parsed = JSON.parse(response);
+    return parsed.origin;  // Extract the 'origin' field, which typically contains the IP address
+});
+
+console.log("Hello, world!");
+
+console.log("IP Address", ipData);
+
+// Return the result in the required format (array)
+return [{ ip: ipData, ...$json }];
+```
+
+### Working with Binary Data
+```javascript
+await $page.goto('https://www.google.com')
+const imageData = await $page.screenshot({ type: 'png', encoding: 'base64' })
+return [
+  {
+    binary: {
+      screenshot: {
+        data: imageData,
+        mimeType: 'image/png',
+        fileName: 'screenshot.png',
+      },
+    },
+  }
+]
+```
 
 ## Screenshots
 
