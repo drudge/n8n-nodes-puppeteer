@@ -31,7 +31,7 @@ docker build -t n8n-puppeteer -f docker/Dockerfile docker/
 
 3. Run the container:
 ```bash
-docker run -it --rm \
+docker run -it \
   -p 5678:5678 \
   -v ~/.n8n:/home/node/.n8n \
   n8n-puppeteer
@@ -67,9 +67,9 @@ You can also connect to an external Chrome instance using the "Browser WebSocket
 
 Options include:
 - **Managed Services**: Use [browserless](https://browserless.io) or [browsercloud](https://browsercloud.io)
-- **Self-Hosted**: Run your own browser container:
+- **Self-Hosted**: Run your own [browser container](https://docs.browserless.io/docker/config):
   ```bash
-  docker run -p 3000:3000 ghcr.io/browserless/chromium
+  docker run -p 3000:3000 -e "TOKEN=6R0W53R135510" ghcr.io/browserless/chromium
   ```
 
 To use a remote browser, enable "Browser WebSocket Endpoint" in any Puppeteer node and enter your WebSocket URL (e.g., `ws://browserless:3000`).
