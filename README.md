@@ -10,27 +10,80 @@
 
 For n8n version 0.187 and later, you can install this node through the Community Nodes panel:
 
-1. Go to **Settings > Community Nodes**.
-2. Select **Install**.
-3. Enter `n8n-nodes-puppeteer` in **Enter npm package name**.
-4. Agree to the [risks](https://docs.n8n.io/integrations/community-nodes/risks/) of using community nodes: select **I understand the risks of installing unverified code from a public source**.
-5. Select **Install**.
+1. Go to **Settings > Community Nodes**
+2. Select **Install**
+3. Enter `n8n-nodes-puppeteer` in **Enter npm package name**
+4. Agree to the [risks](https://docs.n8n.io/integrations/community-nodes/risks/) of using community nodes
+5. Select **Install**
 
-After installing the node, you can use it like any other node. n8n displays the node in search results in the **Nodes** panel.
+### Docker Installation (Recommended for Production)
 
-### Manual installation
+We provide a ready-to-use Docker setup in the `docker/` directory that includes all necessary dependencies and configurations:
 
-To get started install the package in your n8n root directory:
+1. Clone this repository or copy the following files to your project:
+   - `docker/Dockerfile`
+   - `docker/docker-custom-entrypoint.sh`
 
-`npm install n8n-nodes-puppeteer`
+2. Build your Docker image:
+```bash
+docker build -t n8n-puppeteer -f docker/Dockerfile .
+```
 
-For Docker-based deployments, you'll need to make sure [puppeteer is installed](https://developer.chrome.com/docs/puppeteer/troubleshooting/#running-puppeteer-in-docker) first. Then, add the following line before the font installation command in your [n8n Dockerfile](https://github.com/n8n-io/n8n/blob/master/docker/images/n8n/Dockerfile):
+3. Run the container:
+```bash
+docker run -it --rm \
+  -p 5678:5678 \
+  -v ~/.n8n:/home/node/.n8n \
+  n8n-puppeteer
+```
 
-`RUN cd /usr/local/lib/node_modules/n8n && npm install n8n-nodes-puppeteer`
+### Manual Installation
 
-Check out [this gist](https://gist.github.com/drudge/4be1238282a5db30b3786b5de394d13d) or [Marcus' example repo](https://github.com/maspio/n8n-puppeteer-docker) for a working example.
+For a standard installation without Docker:
 
-> **Note:** If you've having issues running puppeteer, please check their [Troubleshooting guide](https://github.com/puppeteer/puppeteer/blob/main/docs/troubleshooting.md) before opening an issue here.
+```bash
+# Navigate to your n8n root directory
+cd /path/to/n8n
+
+# Install the package
+npm install n8n-nodes-puppeteer
+```
+
+Note: By default, when Puppeteer is installed, it downloads a compatible version of Chromium. While this works, it increases installation size and may not include necessary system dependencies. For production use, we recommend either using the Docker setup above or installing system Chrome/Chromium and setting the `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true` environment variable.
+
+## Browser Setup Options
+
+### 1. Local Browser (Docker Setup - Recommended)
+
+The included Docker setup provides the most reliable way to run Chrome/Chromium with all necessary dependencies. It uses Alpine Linux's Chromium package and includes all required fonts and libraries.
+
+### 2. Remote Browser (Alternative for Cloud)
+
+You can also connect to an external Chrome instance using the "Browser WebSocket Endpoint" option. This approach:
+- Eliminates the need for Chrome dependencies in your n8n environment
+- Simplifies deployment and maintenance
+- Provides better resource isolation
+- Works great for cloud and containerized deployments
+
+Options include:
+- **Managed Services**: Use [browserless](https://browserless.io) or [browsercloud](https://browsercloud.io)
+- **Self-Hosted**: Run your own browser container:
+  ```bash
+  docker run -p 3000:3000 ghcr.io/browserless/chromium
+  ```
+
+To use a remote browser, enable "Browser WebSocket Endpoint" in any Puppeteer node and enter your WebSocket URL (e.g., `ws://browserless:3000`).
+
+[Rest of the README content remains the same...]
+
+## Troubleshooting
+
+If you see errors about missing shared libraries (like `libgobject-2.0.so.0` or `libnss3.so`), either:
+
+1. Install the missing Chrome dependencies
+2. Switch to using a remote browser with the WebSocket endpoint option
+
+For additional help, see [Puppeteer's troubleshooting guide](https://pptr.dev/troubleshooting).
 
 ## Node Reference
 
@@ -45,12 +98,12 @@ Check out [this gist](https://gist.github.com/drudge/4be1238282a5db30b3786b5de39
 
   - All Operations
 
-    - **Batch Size**: Maximum number of pages to open simeultaneously. More pages will consume more memory and CPU.
+    - **Batch Size**: Maximum number of pages to open simultaneously. More pages will consume more memory and CPU.
     - **Browser WebSocket Endpoint**: The WebSocket URL of the browser to connect to. When configured, puppeteer will skip the browser launch and connect to the browser instance.
     - **Emulate Device**: Allows you to specify a [device](https://github.com/puppeteer/puppeteer/blob/main/src/common/DeviceDescriptors.ts) to emulate when requesting the page.
     - **Executable Path**: A path where Puppeteer expects to find the bundled browser. Has no effect when 'Browser WebSocket Endpoint' is set.
     - **Extra Headers**: Allows you add additional headers when requesting the page.
-    - **Timeout**: Allows you to specify tge maximum navigation time in milliseconds. You can pass 0 to disable the timeout entirely.
+    - **Timeout**: Allows you to specify the maximum navigation time in milliseconds. You can pass 0 to disable the timeout entirely.
     - **Wait Until**: Allows you to change how Puppeteer considers navigation completed.
       - `load`: The load event is fired.
       - `domcontentloaded`: The DOMContentLoaded event is fired.
@@ -145,9 +198,9 @@ await $page.goto("https://httpbin.org/ip");
 
 // Extract the IP address from the page content
 const ipData = await $page.evaluate(() => {
-	const response = document.body.innerText;
-	const parsed = JSON.parse(response);
-	return parsed.origin; // Extract the 'origin' field, which typically contains the IP address
+  const response = document.body.innerText;
+  const parsed = JSON.parse(response);
+  return parsed.origin; // Extract the 'origin' field, which typically contains the IP address
 });
 
 console.log("Hello, world!");
@@ -189,7 +242,7 @@ await $page.goto("https://example.com/protected-page");
 
 // Perform authenticated operations
 const data = await $page.evaluate(() => {
-	return document.querySelector(".protected-content").textContent;
+  return document.querySelector(".protected-content").textContent;
 });
 
 return [{ data }];
@@ -201,15 +254,15 @@ return [{ data }];
 await $page.goto("https://www.google.com");
 const imageData = await $page.screenshot({ type: "png", encoding: "base64" });
 return [
-	{
-		binary: {
-			screenshot: {
-				data: imageData,
-				mimeType: "image/png",
-				fileName: "screenshot.png",
-			},
-		},
-	},
+  {
+    binary: {
+      screenshot: {
+        data: imageData,
+        mimeType: "image/png",
+        fileName: "screenshot.png",
+      },
+    },
+  },
 ];
 ```
 
