@@ -72,7 +72,7 @@ Options include:
   docker run -p 3000:3000 -e "TOKEN=6R0W53R135510" ghcr.io/browserless/chromium
   ```
 
-To use a remote browser, enable "Browser WebSocket Endpoint" in any Puppeteer node and enter your WebSocket URL (e.g., `ws://browserless:3000`).
+To use a remote browser, enable "Browser WebSocket Endpoint" in any Puppeteer node and enter your WebSocket URL (e.g., `ws://browserless:3000?token=6R0W53R135510`).
 
 ## Troubleshooting
 
