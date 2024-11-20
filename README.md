@@ -26,7 +26,7 @@ We provide a ready-to-use Docker setup in the `docker/` directory that includes 
 
 2. Build your Docker image:
 ```bash
-docker build -t n8n-puppeteer -f docker/Dockerfile .
+docker build -t n8n-puppeteer -f docker/Dockerfile docker/
 ```
 
 3. Run the container:
