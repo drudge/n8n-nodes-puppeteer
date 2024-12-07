@@ -1,4 +1,42 @@
 import { INodeTypeDescription, NodeConnectionType } from 'n8n-workflow';
+import { existsSync, readFileSync } from 'fs';
+
+function isRunningInContainer(): boolean {
+	try {
+			// Method 1: Check for .dockerenv file
+			if (existsSync('/.dockerenv')) {
+					console.log('Puppeteer node: Container detected via .dockerenv file');
+					return true;
+			}
+
+			// Method 2: Check cgroup (Linux only)
+			if (process.platform === 'linux') {
+					try {
+							const cgroupContent = readFileSync('/proc/1/cgroup', 'utf8');
+							if (cgroupContent.includes('docker') || cgroupContent.includes('kubepods')) {
+									console.log('Puppeteer node: Container detected via cgroup content');
+									return true;
+							}
+					} catch (error) {
+							console.log('Puppeteer node: cgroup check skipped');
+					}
+			}
+
+			// Method 3: Check common container environment variables
+			if (process.env.KUBERNETES_SERVICE_HOST ||
+					process.env.DOCKER_CONTAINER ||
+					process.env.DOCKER_HOST) {
+					console.log('Puppeteer node: Container detected via environment variables');
+					return true;
+			}
+
+			return false;
+	} catch (error) {
+			// If any error occurs during checks, log and return false
+			console.log('Puppeteer node: Container detection failed:', (error as Error).message);
+			return false;
+	}
+}
 
 /**
  * Options to be displayed
@@ -682,6 +720,14 @@ export const nodeDescription: INodeTypeDescription = {
 					default: '',
 					description:
 						'This tells Puppeteer to use a custom proxy configuration. Examples: localhost:8080, socks5://localhost:1080, etc.',
+				},
+				{
+					displayName: 'Add Container Arguments',
+					name: 'addContainerArgs',
+					type: 'boolean',
+					default: isRunningInContainer(),
+					description: 'Whether to add recommended arguments for container environments (--no-sandbox, --disable-setuid-sandbox, --disable-dev-shm-usage, --disable-gpu)',
+					required: false,
 				},
 			],
 		},

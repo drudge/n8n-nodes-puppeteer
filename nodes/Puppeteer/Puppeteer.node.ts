@@ -30,6 +30,13 @@ const {
 	CODE_ENABLE_STDOUT,
 } = process.env;
 
+const CONTAINER_LAUNCH_ARGS = [
+	'--no-sandbox',
+	'--disable-setuid-sandbox',
+	'--disable-dev-shm-usage',
+	'--disable-gpu'
+];
+
 export const vmResolver = makeResolverFromLegacyOptions({
 	external: external
 		? {
@@ -221,6 +228,21 @@ export class Puppeteer implements INodeType {
 		// More on launch arguments: https://www.chromium.org/developers/how-tos/run-chromium-with-flags/
 		if (launchArgs && launchArgs.length > 0) {
 			args.push(...launchArgs.map((arg: IDataObject) => arg.arg as string));
+		}
+
+		const addContainerArgs = options.addContainerArgs === true;
+    if (addContainerArgs) {
+			// Only add container args that weren't already specified by the user
+			const missingContainerArgs = CONTAINER_LAUNCH_ARGS.filter(arg => !args.some(
+				existingArg => existingArg === arg || existingArg.startsWith(`${arg}=`)
+			));
+
+			if (missingContainerArgs.length > 0) {
+				console.log('Puppeteer node: Adding container optimizations:', missingContainerArgs);
+				args.push(...missingContainerArgs);
+			} else {
+				console.log('Puppeteer node: Container optimizations already present in launch arguments');
+			}
 		}
 
 		// More on proxying: https://www.chromium.org/developers/design-documents/network-settings
