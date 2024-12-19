@@ -48,7 +48,7 @@ export const vmResolver = makeResolverFromLegacyOptions({
 });
 
 interface HeaderObject {
-	[key: string]: string;
+	parameter: Record<string, string>[];
 }
 
 interface QueryParameter {
@@ -70,13 +70,10 @@ async function handleOptions(
 	const pageCaching = options.pageCaching !== false;
 	const headers: HeaderObject = (options.headers || {}) as HeaderObject;
 
-	const requestHeaders = Object.entries(headers).reduce(
-		(acc: Record<string, string>, [key, value]) => {
-			acc[key] = value;
-			return acc;
-		},
-		{},
-	);
+	const requestHeaders = headers.parameter.reduce((acc, header) => {
+		acc[header.name] = header.value;
+		return acc;
+	}, {});
 	const device = options.device as string;
 
 	await page.setCacheEnabled(pageCaching);
