@@ -320,10 +320,11 @@ export class Puppeteer implements INodeType {
 				const statusCode = response?.status();
 
 				if (statusCode !== 200) {
-					if (this.continueOnFail() !== true) {
+					if (this.continueOnFail() === true) {
 						returnItem = [
 							{
 								json: {
+									error: `Request failed with status code ${statusCode}`,
 									headers,
 									statusCode,
 								},
