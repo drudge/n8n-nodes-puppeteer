@@ -124,7 +124,7 @@ async function handleOptions(
 	const pageCaching = options.pageCaching !== false;
 	const headers: HeaderObject = (options.headers || {}) as HeaderObject;
 
-	const requestHeaders = headers.parameter.reduce((acc, header) => {
+	const requestHeaders = (headers.parameter || []).reduce((acc, header) => {
 		acc[header.name] = header.value;
 		return acc;
 	}, {});
