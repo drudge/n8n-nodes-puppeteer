@@ -229,7 +229,7 @@ async function processPageOperation(
 		const headers = await response?.headers();
 		const statusCode = response?.status();
 
-		if (!response || statusCode !== 200) {
+		if (!response || statusCode >= 400) {
 			return handleError.call(
 				this,
 				new Error(`Request failed with status code ${statusCode || 0}`),
