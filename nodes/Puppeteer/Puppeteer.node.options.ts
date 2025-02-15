@@ -54,6 +54,7 @@ export const nodeDescription: INodeTypeDescription = {
 	icon: 'file:puppeteer.svg',
 	inputs: [NodeConnectionType.Main],
 	outputs: [NodeConnectionType.Main],
+	usableAsTool: true,
 	properties: [
 		{
 			displayName: 'URL',
