@@ -502,8 +502,8 @@ export const nodeDescription: INodeTypeDescription = {
 			default: {},
 			options: [
 				{
-					name: 'parameter',
-					displayName: 'Parameter',
+					name: 'parameters',
+					displayName: 'Parameters',
 					values: [
 						{
 							displayName: 'Name',
