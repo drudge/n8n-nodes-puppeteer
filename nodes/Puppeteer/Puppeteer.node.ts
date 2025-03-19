@@ -617,7 +617,11 @@ export class Puppeteer implements INodeType {
 		} finally {
 			if (browser) {
 				try {
-					await browser.close();
+					if (browserWSEndpoint) {
+						await browser.disconnect();
+					} else {
+						await browser.close();
+					}	
 				} catch (error) {
 					console.error('Error closing browser:', error);
 				}
