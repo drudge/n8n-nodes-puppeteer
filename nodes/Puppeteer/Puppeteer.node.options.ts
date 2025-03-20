@@ -714,6 +714,15 @@ export const nodeDescription: INodeTypeDescription = {
 						'When enabled, applies various techniques to make detection of headless Puppeteer harder.',
 				},
 				{
+					displayName: 'Human typing mode',
+					name: 'humanTyping',
+					type: 'boolean',
+					required: false,
+					default: false,
+					description:
+						'Gives page the function .typeHuman() which "humanizes" the writing of input elements',
+				},
+				{
 					displayName: 'Proxy Server',
 					name: 'proxyServer',
 					type: 'string',

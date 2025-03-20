@@ -12,6 +12,8 @@ import { makeResolverFromLegacyOptions, NodeVM } from '@n8n/vm2';
 
 import puppeteer from 'puppeteer-extra';
 import pluginStealth from 'puppeteer-extra-plugin-stealth';
+//@ts-ignore
+import pluginHumanTyping from 'puppeteer-extra-plugin-human-typing'; 
 import {
 	Browser,
 	Device,
@@ -229,7 +231,7 @@ async function processPageOperation(
 		const headers = await response?.headers();
 		const statusCode = response?.status();
 
-		if (!response || statusCode >= 400) {
+		if (!response || (statusCode && statusCode >= 400)) {
 			return handleError.call(
 				this,
 				new Error(`Request failed with status code ${statusCode || 0}`),
@@ -467,6 +469,7 @@ export class Puppeteer implements INodeType {
 		const executablePath = options.executablePath as string;
 		const browserWSEndpoint = options.browserWSEndpoint as string;
 		const stealth = options.stealth === true;
+		const humanTyping = options.humanTyping === true;
 		const launchArguments = (options.launchArguments as IDataObject) || {};
 		const launchArgs: IDataObject[] = launchArguments.args as IDataObject[];
 		const args: string[] = [];
@@ -503,6 +506,9 @@ export class Puppeteer implements INodeType {
 
 		if (stealth) {
 			puppeteer.use(pluginStealth());
+		}
+		if (humanTyping) {
+			puppeteer.use(pluginHumanTyping());
 		}
 
 		if (headless && headlessShell) {
