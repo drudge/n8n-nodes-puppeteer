@@ -470,6 +470,10 @@ export class Puppeteer implements INodeType {
 		const browserWSEndpoint = options.browserWSEndpoint as string;
 		const stealth = options.stealth === true;
 		const humanTyping = options.humanTyping === true;
+		const humanTypingOptions =  {
+			keyboardLayout: "en",
+			...((options.humanTypingOptions as IDataObject) || {})
+		};
 		const launchArguments = (options.launchArguments as IDataObject) || {};
 		const launchArgs: IDataObject[] = launchArguments.args as IDataObject[];
 		const args: string[] = [];
@@ -508,14 +512,14 @@ export class Puppeteer implements INodeType {
 			puppeteer.use(pluginStealth());
 		}
 		if (humanTyping) {
-			puppeteer.use(pluginHumanTyping());
+			puppeteer.use(pluginHumanTyping(humanTypingOptions));
 		}
 
 		if (headless && headlessShell) {
 			headless = 'shell';
 		}
 
-		let browser;
+		let browser; 
 		try {
 			if (browserWSEndpoint) {
 				browser = await puppeteer.connect({
