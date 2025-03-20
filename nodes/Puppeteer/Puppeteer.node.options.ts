@@ -110,7 +110,7 @@ export const nodeDescription: INodeTypeDescription = {
 				'// Navigate to an IP lookup service\nawait $page.goto(\'https://httpbin.org/ip\');\n\n// Extract the IP address from the page content\nconst ipData = await $page.evaluate(() => {\n    const response = document.body.innerText;\n    const parsed = JSON.parse(response);\n    return parsed.origin;  // Extract the \'origin\' field, which typically contains the IP address\n});\n\nconsole.log("Hello, world!");\n\nconsole.log("IP Address", ipData);\n\n// Return the result in the required format\nreturn [{ ip: ipData, ...$json }];',
 			description:
 				'JavaScript code to execute with Puppeteer. You have access to the $browser and $page objects, which represent the Puppeteer browser and page.',
-			noDataExpression: true,
+			noDataExpression: false,
 			displayOptions: {
 				show: {
 					operation: ['runCustomScript'],
@@ -502,8 +502,8 @@ export const nodeDescription: INodeTypeDescription = {
 			default: {},
 			options: [
 				{
-					name: 'parameter',
-					displayName: 'Parameter',
+					name: 'parameters',
+					displayName: 'Parameters',
 					values: [
 						{
 							displayName: 'Name',
@@ -712,6 +712,77 @@ export const nodeDescription: INodeTypeDescription = {
 					default: false,
 					description:
 						'When enabled, applies various techniques to make detection of headless Puppeteer harder.',
+				},
+				{
+					displayName: 'Human typing mode',
+					name: 'humanTyping',
+					type: 'boolean',
+					required: false,
+					default: false,
+					description:
+						'Gives page the function .typeHuman() which "humanizes" the writing of input elements',
+				},
+				{
+					displayName: 'Human Typing Options',
+					name: 'humanTypingOptions',
+					type: 'collection',
+					placeholder: 'Add Option',
+					default: {},
+					displayOptions: {
+						show: {
+							humanTyping: [true],
+						},
+					},
+					options: [
+						{
+							displayName: 'Backspace Maximum Delay (ms)',
+							name: 'backspaceMaximumDelayInMs',
+							type: 'number',
+							required: false,
+							default: 750 * 2,
+							description: 'Maximum delay for simulating backspaces in milliseconds',
+						},
+						{
+							displayName: 'Backspace Minimum Delay (ms)',
+							name: 'backspaceMinimumDelayInMs',
+							type: 'number',
+							required: false,
+							default: 750,
+							description: 'Minimum delay for simulating backspaces in milliseconds',
+						},
+						{
+							displayName: 'Maximum Delay (ms)',
+							name: 'maximumDelayInMs',
+							type: 'number',
+							required: false,
+							default: 650,
+							description: 'Maximum delay between keystrokes in milliseconds',
+						},
+						{
+							displayName: 'Minimum Delay (ms)',
+							name: 'minimumDelayInMs',
+							type: 'number',
+							required: false,
+							default: 150,
+							description: 'Minimum delay between keystrokes in milliseconds',
+						},
+						{
+							displayName: 'Chance to Keep a Typo (%)',
+							name: 'chanceToKeepATypoInPercent',
+							type: 'number',
+							required: false,
+							default: 0,
+							description: 'Percentage chance to keep a typo',
+						},
+						{
+							displayName: 'Typo Chance (%)',
+							name: 'typoChanceInPercent',
+							type: 'number',
+							required: false,
+							default: 15,
+							description: 'Percentage chance to make a typo',
+						},
+					],
 				},
 				{
 					displayName: 'Proxy Server',

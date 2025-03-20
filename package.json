@@ -58,6 +58,7 @@
     "@n8n/vm2": "^3.9.25",
     "puppeteer": "^24.1.1",
     "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-human-typing": "github:0x7357/puppeteer-extra-plugin-human-typing",
     "puppeteer-extra-plugin-stealth": "^2.11.2"
   }
 }
