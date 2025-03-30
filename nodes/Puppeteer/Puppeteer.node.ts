@@ -12,6 +12,8 @@ import { makeResolverFromLegacyOptions, NodeVM } from '@n8n/vm2';
 
 import puppeteer from 'puppeteer-extra';
 import pluginStealth from 'puppeteer-extra-plugin-stealth';
+//@ts-ignore
+import pluginHumanTyping from 'puppeteer-extra-plugin-human-typing'; 
 import {
 	type Browser,
 	type Device,
@@ -467,6 +469,11 @@ export class Puppeteer implements INodeType {
 		const executablePath = options.executablePath as string;
 		const browserWSEndpoint = options.browserWSEndpoint as string;
 		const stealth = options.stealth === true;
+		const humanTyping = options.humanTyping === true;
+		const humanTypingOptions =  {
+			keyboardLayout: "en",
+			...((options.humanTypingOptions as IDataObject) || {})
+		};
 		const launchArguments = (options.launchArguments as IDataObject) || {};
 		const launchArgs: IDataObject[] = launchArguments.args as IDataObject[];
 		const args: string[] = [];
@@ -504,12 +511,15 @@ export class Puppeteer implements INodeType {
 		if (stealth) {
 			puppeteer.use(pluginStealth());
 		}
+		if (humanTyping) {
+			puppeteer.use(pluginHumanTyping(humanTypingOptions));
+		}
 
 		if (headless && headlessShell) {
 			headless = 'shell';
 		}
 
-		let browser;
+		let browser; 
 		try {
 			if (browserWSEndpoint) {
 				browser = await puppeteer.connect({
@@ -617,7 +627,11 @@ export class Puppeteer implements INodeType {
 		} finally {
 			if (browser) {
 				try {
-					await browser.close();
+					if (browserWSEndpoint) {
+						await browser.disconnect();
+					} else {
+						await browser.close();
+					}	
 				} catch (error) {
 					console.error('Error closing browser:', error);
 				}
