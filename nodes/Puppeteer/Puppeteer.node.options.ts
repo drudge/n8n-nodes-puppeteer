@@ -1,5 +1,5 @@
-import { INodeTypeDescription, NodeConnectionType } from 'n8n-workflow';
-import { existsSync, readFileSync } from 'fs';
+import { type INodeTypeDescription, NodeConnectionType } from 'n8n-workflow';
+import { existsSync, readFileSync } from 'node:fs';
 
 function isRunningInContainer(): boolean {
 	try {
@@ -366,7 +366,7 @@ export const nodeDescription: INodeTypeDescription = {
 				rows: 5,
 			},
 			type: 'string',
-			default: ``,
+			default: "",
 			description: `HTML template for the print header. Should be valid HTML with the following classes used to inject values into them: - date formatted print date
 
             - title document title
@@ -391,8 +391,8 @@ export const nodeDescription: INodeTypeDescription = {
 				rows: 5,
 			},
 			type: 'string',
-			default: ``,
-			description: `HTML template for the print footer. Should be valid HTML with the following classes used to inject values into them: - date formatted print date`,
+			default: "",
+			description: "HTML template for the print footer. Should be valid HTML with the following classes used to inject values into them: - date formatted print date",
 			noDataExpression: true,
 			displayOptions: {
 				show: {

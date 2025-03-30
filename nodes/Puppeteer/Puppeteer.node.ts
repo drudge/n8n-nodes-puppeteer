@@ -1,11 +1,11 @@
 import {
-	IDataObject,
-	IExecuteFunctions,
-	ILoadOptionsFunctions,
-	INodeExecutionData,
-	INodePropertyOptions,
-	INodeType,
-	INodeTypeDescription,
+	type IDataObject,
+	type IExecuteFunctions,
+	type ILoadOptionsFunctions,
+	type INodeExecutionData,
+	type INodePropertyOptions,
+	type INodeType,
+	type INodeTypeDescription,
 	NodeOperationError,
 } from 'n8n-workflow';
 import { makeResolverFromLegacyOptions, NodeVM } from '@n8n/vm2';
@@ -13,14 +13,14 @@ import { makeResolverFromLegacyOptions, NodeVM } from '@n8n/vm2';
 import puppeteer from 'puppeteer-extra';
 import pluginStealth from 'puppeteer-extra-plugin-stealth';
 import {
-	Browser,
-	Device,
+	type Browser,
+	type Device,
 	KnownDevices as devices,
-	Page,
-	PaperFormat,
-	PDFOptions,
-	PuppeteerLifeCycleEvent,
-	ScreenshotOptions,
+	type Page,
+	type PaperFormat,
+	type PDFOptions,
+	type PuppeteerLifeCycleEvent,
+	type ScreenshotOptions,
 } from 'puppeteer';
 
 import { nodeDescription } from './Puppeteer.node.options';
@@ -229,7 +229,7 @@ async function processPageOperation(
 		const headers = await response?.headers();
 		const statusCode = response?.status();
 
-		if (!response || statusCode >= 400) {
+		if (!response || (statusCode && statusCode >= 400)) {
 			return handleError.call(
 				this,
 				new Error(`Request failed with status code ${statusCode || 0}`),
