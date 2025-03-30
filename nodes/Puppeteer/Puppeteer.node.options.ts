@@ -539,7 +539,7 @@ export const nodeDescription: INodeTypeDescription = {
 					},
 					default: 1,
 					description:
-						'Maximum number of pages to open simeultaneously. More pages will consume more memory and CPU.',
+						'Maximum number of pages to open simultaneously. More pages will consume more memory and CPU.',
 				},
 				{
 					displayName: 'Browser WebSocket Endpoint',
