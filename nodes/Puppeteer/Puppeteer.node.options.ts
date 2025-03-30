@@ -3,38 +3,38 @@ import { existsSync, readFileSync } from 'node:fs';
 
 function isRunningInContainer(): boolean {
 	try {
-			// Method 1: Check for .dockerenv file
-			if (existsSync('/.dockerenv')) {
-					console.log('Puppeteer node: Container detected via .dockerenv file');
+		// Method 1: Check for .dockerenv file
+		if (existsSync('/.dockerenv')) {
+			console.log('Puppeteer node: Container detected via .dockerenv file');
+			return true;
+		}
+
+		// Method 2: Check cgroup (Linux only)
+		if (process.platform === 'linux') {
+			try {
+				const cgroupContent = readFileSync('/proc/1/cgroup', 'utf8');
+				if (cgroupContent.includes('docker') || cgroupContent.includes('kubepods')) {
+					console.log('Puppeteer node: Container detected via cgroup content');
 					return true;
+				}
+			} catch (error) {
+				console.log('Puppeteer node: cgroup check skipped');
 			}
+		}
 
-			// Method 2: Check cgroup (Linux only)
-			if (process.platform === 'linux') {
-					try {
-							const cgroupContent = readFileSync('/proc/1/cgroup', 'utf8');
-							if (cgroupContent.includes('docker') || cgroupContent.includes('kubepods')) {
-									console.log('Puppeteer node: Container detected via cgroup content');
-									return true;
-							}
-					} catch (error) {
-							console.log('Puppeteer node: cgroup check skipped');
-					}
-			}
+		// Method 3: Check common container environment variables
+		if (process.env.KUBERNETES_SERVICE_HOST ||
+			process.env.DOCKER_CONTAINER ||
+			process.env.DOCKER_HOST) {
+			console.log('Puppeteer node: Container detected via environment variables');
+			return true;
+		}
 
-			// Method 3: Check common container environment variables
-			if (process.env.KUBERNETES_SERVICE_HOST ||
-					process.env.DOCKER_CONTAINER ||
-					process.env.DOCKER_HOST) {
-					console.log('Puppeteer node: Container detected via environment variables');
-					return true;
-			}
-
-			return false;
+		return false;
 	} catch (error) {
-			// If any error occurs during checks, log and return false
-			console.log('Puppeteer node: Container detection failed:', (error as Error).message);
-			return false;
+		// If any error occurs during checks, log and return false
+		console.log('Puppeteer node: Container detection failed:', (error as Error).message);
+		return false;
 	}
 }
 
@@ -644,9 +644,20 @@ export const nodeDescription: INodeTypeDescription = {
 					typeOptions: {
 						minValue: 0,
 					},
-					default: 30,
+					default: 30000,
 					description:
 						'Maximum navigation time in milliseconds. Pass 0 to disable timeout. Has no effect on the \'Run Custom Script\' operation.',
+				},
+				{
+					displayName: 'Protocol Timeout',
+					name: 'protocolTimeout',
+					type: 'number',
+					typeOptions: {
+						minValue: 0,
+					},
+					default: 30000,
+					description:
+						'Maximum time in milliseconds to wait for a protocol response. Pass 0 to disable timeout.',
 				},
 				{
 					displayName: 'Wait Until',

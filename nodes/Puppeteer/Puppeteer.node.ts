@@ -349,11 +349,11 @@ async function processPageOperation(
 					{},
 				) as IDataObject;
 
-				let headerTemplate;
-				let footerTemplate;
-				let height;
-				let width;
-				let format;
+				let headerTemplate = '';
+				let footerTemplate = '';
+				let height = '';
+				let width = '';
+				let format: PaperFormat = 'A4';
 
 				if (displayHeaderFooter === true) {
 					headerTemplate = this.getNodeParameter(
@@ -478,6 +478,7 @@ export class Puppeteer implements INodeType {
 		const launchArgs: IDataObject[] = launchArguments.args as IDataObject[];
 		const args: string[] = [];
 		const device = options.device as string;
+		const protocolTimeout = options.protocolTimeout as number;
 		let batchSize = options.batchSize as number;
 
 		if (!Number.isInteger(batchSize) || batchSize < 1) {
@@ -519,17 +520,19 @@ export class Puppeteer implements INodeType {
 			headless = 'shell';
 		}
 
-		let browser; 
+		let browser: Browser;
 		try {
 			if (browserWSEndpoint) {
 				browser = await puppeteer.connect({
 					browserWSEndpoint,
+					protocolTimeout,
 				});
 			} else {
 				browser = await puppeteer.launch({
 					headless,
 					args,
 					executablePath,
+					protocolTimeout,
 				});
 			}
 		} catch (error) {
@@ -540,7 +543,7 @@ export class Puppeteer implements INodeType {
 			item: INodeExecutionData,
 			itemIndex: number,
 		): Promise<INodeExecutionData[]> => {
-			let page;
+			let page: Page | undefined;
 			try {
 				page = await browser.newPage();
 				await handleOptions.call(this, itemIndex, items, browser, page);
@@ -556,7 +559,7 @@ export class Puppeteer implements INodeType {
 						browser,
 						page,
 					);
-				} else {
+				}
 					const urlString = this.getNodeParameter('url', itemIndex) as string;
 					const queryParametersOptions = this.getNodeParameter(
 						'queryParameters',
@@ -565,7 +568,7 @@ export class Puppeteer implements INodeType {
 					) as IDataObject;
 
 					const queryParameters = (queryParametersOptions.parameters as QueryParameter[]) || [];
-					let url;
+					let url: URL;
 
 					try {
 						url = new URL(urlString);
@@ -594,7 +597,6 @@ export class Puppeteer implements INodeType {
 						itemIndex,
 						options,
 					);
-				}
 			} catch (error) {
 				return handleError.call(
 					this,
@@ -620,7 +622,7 @@ export class Puppeteer implements INodeType {
 				const results = await Promise.all(
 					batch.map((item, idx) => processItem(item, i + idx)),
 				);
-				if (results && results.length) {
+				if (results?.length) {
 					returnData.push(...results.flat());
 				}
 			}
