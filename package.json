@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-puppeteer",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "n8n node for browser automation using Puppeteer",
   "license": "MIT",
   "homepage": "https://github.com/drudge/n8n-nodes-puppeteer",
