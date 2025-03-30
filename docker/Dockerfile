@@ -6,6 +6,7 @@ USER root
 RUN apk add --no-cache \
     chromium \
     nss \
+    glib \
     freetype \
     freetype-dev \
     harfbuzz \
