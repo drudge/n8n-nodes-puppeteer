@@ -478,7 +478,9 @@ export class Puppeteer implements INodeType {
 		const launchArgs: IDataObject[] = launchArguments.args as IDataObject[];
 		const args: string[] = [];
 		const device = options.device as string;
+        const wsHeaders: {} = options.wsHeaders || {};
 		const protocolTimeout = options.protocolTimeout as number;
+        
 		let batchSize = options.batchSize as number;
 
 		if (!Number.isInteger(batchSize) || batchSize < 1) {
@@ -526,6 +528,7 @@ export class Puppeteer implements INodeType {
 				browser = await puppeteer.connect({
 					browserWSEndpoint,
 					protocolTimeout,
+                    headers: wsHeaders
 				});
 			} else {
 				browser = await puppeteer.launch({
