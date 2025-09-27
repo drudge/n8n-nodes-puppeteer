@@ -23,6 +23,7 @@ import {
 	type PDFOptions,
 	type PuppeteerLifeCycleEvent,
 	type ScreenshotOptions,
+	Locator,
 } from 'puppeteer';
 
 import { nodeDescription } from './Puppeteer.node.options';
