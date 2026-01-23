@@ -213,6 +213,9 @@ async function runCustomScript(
   const options = this.getNodeParameter("options", 0, {}) as IDataObject;
   const captureDownloads = options.captureDownloads === true;
 
+  // Get the query parameter for AI agent compatibility
+  const query = this.getNodeParameter("query", itemIndex, "") as string;
+
   let downloadPath: string | undefined;
   let cleanup: (() => void) | undefined;
 
@@ -239,6 +242,9 @@ async function runCustomScript(
     $browser: browser,
     $page: page,
     $puppeteer: puppeteer,
+    $input: {
+      query,
+    },
   };
   const vm = new NodeVM({
     console: "redirect",

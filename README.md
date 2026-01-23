@@ -258,8 +258,41 @@ Access Puppeteer-specific objects using:
 - `$page` - Current page instance
 - `$browser` - Browser instance
 - `$puppeteer` - Puppeteer library
+- `$input.query` - Input query from AI agents (when used as a tool)
 
 Plus all special variables and methods from the Code node are available. For a complete reference, see the [n8n documentation](https://docs.n8n.io/code-examples/methods-variables-reference/). Just like n8n's Code node, anything you `console.log` will be shown in the browser's console during test mode or in stdout when configured.
+
+### AI Agent Integration
+
+When used as a tool by n8n AI agents, this node supports two powerful workflows:
+
+**1. AI-Generated Scripts**: AI agents can dynamically generate the entire Puppeteer script using `$fromAI()` on the Script Code parameter. The AI analyzes the task and writes the appropriate Puppeteer code to accomplish it.
+
+```javascript
+// AI agent generates script dynamically based on the task
+scriptCode: $fromAI('code', 'Generate a Puppeteer script to extract product prices from the homepage')
+```
+
+**2. Reusable Scripts with AI Input**: Write a reusable script that accepts dynamic input from AI agents via the Query parameter. Access the input using `$input.query` in your script.
+
+```javascript
+// Reusable script that processes AI-provided input
+const url = $input.query || 'https://example.com';
+await $page.goto(url);
+
+const data = await $page.evaluate(() => {
+  return document.querySelector('h1').textContent;
+});
+
+return [{ url, title: data }];
+```
+
+```javascript
+// AI agent provides input dynamically
+query: $fromAI('url', 'The website URL to scrape')
+```
+
+This makes the node extremely flexible for AI-powered automation - agents can either write custom scripts for specific tasks or pass data to pre-built, reusable scripts.
 
 ### Basic
 

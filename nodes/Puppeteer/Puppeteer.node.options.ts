@@ -107,7 +107,7 @@ const buildProperties = (): INodeProperties[] => {
       default:
         "// Navigate to an IP lookup service\nawait $page.goto('https://httpbin.org/ip');\n\n// Extract the IP address from the page content\nconst ipData = await $page.evaluate(() => {\n    const response = document.body.innerText;\n    const parsed = JSON.parse(response);\n    return parsed.origin;  // Extract the 'origin' field, which typically contains the IP address\n});\n\nconsole.log(\"Hello, world!\");\n\nconsole.log(\"IP Address\", ipData);\n\n// Return the result in the required format\nreturn [{ ip: ipData, ...$json }];",
       description:
-        "JavaScript code to execute with Puppeteer. You have access to the $browser and $page objects, which represent the Puppeteer browser and page.",
+        "JavaScript code to execute with Puppeteer. You have access to the $browser and $page objects, which represent the Puppeteer browser and page. When used as an AI agent tool, AI can dynamically generate this script using $fromAI(), or you can write a reusable script that processes input from the Query parameter below.",
       noDataExpression: false,
       displayOptions: {
         show: {
@@ -117,7 +117,7 @@ const buildProperties = (): INodeProperties[] => {
     },
     {
       displayName:
-        'Use <code>$page</code>, <code>$browser</code>, or <code>$puppeteer</code> vars to access Puppeteer. <a target="_blank" href="https://docs.n8n.io/code-examples/methods-variables-reference/">Special vars/methods</a> are available. <br><br>Debug by using <code>console.log()</code> statements and viewing their output in the browser console.',
+        'Use <code>$page</code>, <code>$browser</code>, or <code>$puppeteer</code> vars to access Puppeteer. <a target="_blank" href="https://docs.n8n.io/code-examples/methods-variables-reference/">Special vars/methods</a> are available. <br><br>Debug by using <code>console.log()</code> statements and viewing their output in the browser console.<br><br>When used as an AI agent tool, access the agent\'s query input via <code>$input.query</code>.',
       name: "notice",
       type: "notice",
       displayOptions: {
@@ -126,6 +126,21 @@ const buildProperties = (): INodeProperties[] => {
         },
       },
       default: "",
+    },
+    {
+      displayName: "Query (AI Agent Input)",
+      name: "query",
+      type: "string",
+      default: "",
+      description:
+        "Input query for AI agents. When this node is used as a tool by an AI agent, the agent's query/instruction will be passed here. Access this value in your custom script using $input.query. You can use $fromAI() when configuring this as a tool.",
+      displayOptions: {
+        show: {
+          operation: ["runCustomScript"],
+        },
+      },
+      placeholder: "e.g., URL to visit, text to process, or instructions",
+      required: false,
     },
     {
       displayName: "Property Name",
