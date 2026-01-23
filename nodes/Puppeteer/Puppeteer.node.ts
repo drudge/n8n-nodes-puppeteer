@@ -9,6 +9,9 @@ import {
   NodeOperationError,
 } from "n8n-workflow";
 import { makeResolverFromLegacyOptions, NodeVM } from "@n8n/vm2";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 
 import puppeteer from "puppeteer-extra";
 import pluginStealth from "puppeteer-extra-plugin-stealth";
@@ -156,6 +159,49 @@ async function handleOptions(
   await page.setExtraHTTPHeaders(requestHeaders);
 }
 
+async function setupDownloadCapture(
+  page: Page,
+): Promise<{ downloadPath: string; cleanup: () => void }> {
+  // Create a temporary directory for downloads
+  const downloadPath = mkdtempSync(join(tmpdir(), "n8n-puppeteer-"));
+
+  // Get the CDP session
+  const client = await page.createCDPSession();
+
+  // Set download behavior
+  await client.send("Browser.setDownloadBehavior", {
+    behavior: "allow",
+    downloadPath,
+  });
+
+  const cleanup = () => {
+    try {
+      rmSync(downloadPath, { recursive: true, force: true });
+    } catch (error) {
+      console.error("Error cleaning up download directory:", error);
+    }
+  };
+
+  return { downloadPath, cleanup };
+}
+
+async function getDownloadedFiles(
+  downloadPath: string,
+  helpers: IExecuteFunctions["helpers"],
+): Promise<INodeExecutionData["binary"]> {
+  const files = readdirSync(downloadPath);
+  const binaryData: INodeExecutionData["binary"] = {};
+
+  for (const file of files) {
+    const filePath = join(downloadPath, file);
+    const fileBuffer = readFileSync(filePath);
+    const binary = await helpers.prepareBinaryData(fileBuffer, file);
+    binaryData[file] = binary;
+  }
+
+  return binaryData;
+}
+
 async function runCustomScript(
   this: IExecuteFunctions,
   itemIndex: number,
@@ -164,6 +210,21 @@ async function runCustomScript(
   page: Page,
 ): Promise<INodeExecutionData[]> {
   const scriptCode = this.getNodeParameter("scriptCode", itemIndex) as string;
+  const options = this.getNodeParameter("options", 0, {}) as IDataObject;
+  const captureDownloads = options.captureDownloads === true;
+
+  let downloadPath: string | undefined;
+  let cleanup: (() => void) | undefined;
+
+  // Set up download capture if enabled
+  if (captureDownloads) {
+    const downloadSetup = await setupDownloadCapture(page);
+    downloadPath = downloadSetup.downloadPath;
+    cleanup = downloadSetup.cleanup;
+    console.log(
+      `Puppeteer node: Download capture enabled, files will be saved to: ${downloadPath}`,
+    );
+  }
   const context = {
     $getNodeParameter: this.getNodeParameter,
     $getWorkflowStaticData: this.getWorkflowStaticData,
@@ -205,6 +266,7 @@ async function runCustomScript(
     );
 
     if (!Array.isArray(scriptResult)) {
+      if (cleanup) cleanup();
       return handleError.call(
         this,
         new Error(
@@ -216,8 +278,43 @@ async function runCustomScript(
       );
     }
 
-    return this.helpers.normalizeItems(scriptResult);
+    let normalizedItems = this.helpers.normalizeItems(scriptResult);
+
+    // If download capture is enabled, attach downloaded files to the output
+    if (captureDownloads && downloadPath) {
+      // Wait a bit for downloads to complete
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      const downloadedFiles = await getDownloadedFiles(
+        downloadPath,
+        this.helpers,
+      );
+
+      // If there are downloaded files, attach them to the first item
+      const fileCount = Object.keys(downloadedFiles || {}).length;
+      if (fileCount > 0) {
+        console.log(`Puppeteer node: Captured ${fileCount} downloaded file(s)`);
+
+        if (normalizedItems.length === 0) {
+          normalizedItems = [{ json: {} }];
+        }
+
+        // Attach files to the first item
+        normalizedItems[0] = {
+          ...normalizedItems[0],
+          binary: {
+            ...(normalizedItems[0].binary || {}),
+            ...downloadedFiles,
+          },
+        };
+      }
+
+      cleanup!();
+    }
+
+    return normalizedItems;
   } catch (error) {
+    if (cleanup) cleanup();
     return handleError.call(this, error as Error, itemIndex, undefined, page);
   }
 }

@@ -852,6 +852,15 @@ const buildProperties = (): INodeProperties[] => {
             "This tells Puppeteer to use a custom proxy configuration. Examples: localhost:8080, socks5://localhost:1080, etc.",
         },
         {
+          displayName: "Capture Downloads",
+          name: "captureDownloads",
+          type: "boolean",
+          default: false,
+          description:
+            "When enabled, any files downloaded during script execution (via clicks, direct downloads, etc.) will be automatically captured and returned as binary data in the node output. Useful for downloading PDFs, images, or other files triggered by user interactions.",
+          required: false,
+        },
+        {
           displayName: "Add Container Arguments",
           name: "addContainerArgs",
           type: "boolean",

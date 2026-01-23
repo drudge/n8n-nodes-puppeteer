@@ -183,6 +183,7 @@ For additional help, see [Puppeteer's troubleshooting guide](https://pptr.dev/tr
     - **Stealth mode**: When enabled, applies various techniques to make detection of headless Puppeteer harder. Powered by [puppeteer-extra-plugin-stealth](https://github.com/berstend/puppeteer-extra/tree/master/packages/puppeteer-extra-plugin-stealth).
     - **Human typing mode**: Gives page the function `.typeHuman()` which "humanizes" the writing of input elements. Includes configurable options for typing speed, typos, and backspace delays.
     - **Launch Arguments**: Allows you to specify additional command line arguments passed to the browser instance.
+    - **Capture Downloads**: When enabled, any files downloaded during script execution (via clicks, direct downloads, etc.) will be automatically captured and returned as binary data in the node output. Perfect for downloading PDFs, images, or other files triggered by user interactions. Files are automatically cleaned up after capture.
     - **Add Container Arguments**: Automatically adds recommended arguments for container environments (`--no-sandbox`, `--disable-setuid-sandbox`, `--disable-dev-shm-usage`, `--disable-gpu`). Container environments are auto-detected by default. Disable only if you experience launch issues.
     - **Proxy Server**: Allows Puppeteer to use a custom proxy configuration. You can specify a custom proxy configuration in three ways:
       By providing a semi-colon-separated mapping of list scheme to url/port pairs.
@@ -335,6 +336,37 @@ return [
   },
 ];
 ```
+
+### Downloading Files
+
+The Capture Downloads option makes it easy to download files triggered by user interactions or scripts:
+
+```javascript
+// Navigate to a page with downloadable files
+await $page.goto('https://example.com/downloads');
+
+// Click a download button - the file will be automatically captured
+await $page.click('#download-pdf-button');
+
+// Wait a moment for the download to complete
+await $page.waitForTimeout(2000);
+
+// Return the result - downloaded files will be attached as binary data
+return [{ json: { success: true } }];
+```
+
+When the "Capture Downloads" option is enabled:
+- All files downloaded during script execution are automatically captured
+- Files are returned as binary data in the node output
+- Multiple files are supported - each file gets its own binary property
+- Files are automatically cleaned up after capture
+- Works with direct downloads, click-triggered downloads, and programmatic downloads
+
+This is particularly useful for:
+- Downloading PDFs from web applications
+- Capturing generated reports
+- Saving images or documents triggered by user actions
+- Testing download functionality in automated workflows
 
 ## Environment Variables
 
