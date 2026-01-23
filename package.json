@@ -19,7 +19,18 @@
     "lint": "tslint -p tsconfig.json -c tslint.json",
     "lintfix": "tslint --fix -p tsconfig.json -c tslint.json",
     "nodelinter": "nodelinter",
-    "watch": "tsc --watch"
+    "watch": "tsc --watch",
+    "docker:build": "docker build -t n8n-nodes-puppeteer .",
+    "docker:build:local": "docker build -t n8n-nodes-puppeteer:local -f docker/Dockerfile .",
+    "docker:run": "docker run -it --rm -p 5678:5678 -v n8n_data:/home/node/.n8n n8n-nodes-puppeteer",
+    "docker:run:local": "docker run -it --rm -p 5678:5678 -v n8n_data:/home/node/.n8n n8n-nodes-puppeteer:local",
+    "docker:run:fresh": "docker run -it --rm -p 5678:5678 n8n-nodes-puppeteer",
+    "docker:run:external-browser": "docker run -it --rm -p 5678:5678 -e PUPPETEER_BROWSER_WS_ENDPOINT=ws://host.docker.internal:9222 -v n8n_data:/home/node/.n8n n8n-nodes-puppeteer",
+    "docker:test": "docker run --rm n8n-nodes-puppeteer n8n --version",
+    "docker:test:fresh": "npm run docker:clean && npm run docker:build && npm run docker:run:fresh",
+    "docker:shell": "docker run -it --rm --entrypoint sh n8n-nodes-puppeteer",
+    "docker:clean": "docker volume rm n8n_data 2>/dev/null || true",
+    "docker:clean:all": "docker volume rm n8n_data 2>/dev/null || true && docker rmi n8n-nodes-puppeteer n8n-nodes-puppeteer:local 2>/dev/null || true"
   },
   "files": [
     "dist"
@@ -59,6 +70,7 @@
     "puppeteer": "^24.1.1",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-human-typing": "github:0x7357/puppeteer-extra-plugin-human-typing",
-    "puppeteer-extra-plugin-stealth": "^2.11.2"
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "puppeteer-extra-plugin-user-preferences": "^2.4.1"
   }
 }
