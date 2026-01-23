@@ -13,8 +13,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22.x"
+          registry-url: "https://registry.npmjs.org"
       - run: npm ci
       - run: npm run build
-      - run: |
-          npm config set //registry.npmjs.org/:_authToken ''
-          npm publish --provenance --access public --registry https://registry.npmjs.org
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
