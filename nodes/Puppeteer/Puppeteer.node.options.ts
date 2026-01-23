@@ -549,6 +549,39 @@ export const nodeDescription: INodeTypeDescription = {
 					default: '',
 					description: 'The WebSocket URL of the browser to connect to. When configured, puppeteer will skip the browser launch and connect to the browser instance.',
 				},
+                {
+					displayName: 'Browser WebSocket Headers',
+					name: 'wsHeaders',
+					placeholder: 'Add Header',
+					type: 'fixedCollection',
+					typeOptions: {
+						multipleValues: true,
+					},
+					description: 'The headers to send when connecting to the browser websocket endpoint.',
+					default: {},
+					options: [
+						{
+							name: 'parameter',
+							displayName: 'Header',
+							values: [
+								{
+									displayName: 'Name',
+									name: 'name',
+									type: 'string',
+									default: '',
+									description: 'Name of the header.',
+								},
+								{
+									displayName: 'Value',
+									name: 'value',
+									type: 'string',
+									default: '',
+									description: 'Value to set for the header.',
+								},
+							],
+						},
+					],
+				},
 				{
 					displayName: 'Emulate Device',
 					name: 'device',
