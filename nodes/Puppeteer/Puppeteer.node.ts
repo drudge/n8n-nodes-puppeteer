@@ -181,7 +181,7 @@ async function runCustomScript(
 	vm.on(
 		'console.log',
 		this.getMode() === 'manual'
-			? this.sendMessageToUI
+			? this.sendMessageToUI.bind(this)
 			: CODE_ENABLE_STDOUT === 'true'
 				? (...args: unknown[]) =>
 					console.log(`[Workflow "${this.getWorkflow().id}"][Node "${this.getNode().name}"]`, ...args)
