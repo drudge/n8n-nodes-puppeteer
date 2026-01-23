@@ -20,22 +20,39 @@ For n8n version 0.187 and later, you can install this node through the Community
 
 We provide a ready-to-use Docker setup in the `docker/` directory that includes all necessary dependencies and configurations:
 
-1. Clone this repository or copy the following files to your project:
-   - `docker/Dockerfile`
-   - `docker/docker-custom-entrypoint.sh`
+1. Clone this repository
 
 2. Build your Docker image:
 ```bash
-docker build -t n8n-puppeteer -f docker/Dockerfile docker/
+npm run docker:build
 ```
 
 3. Run the container:
 ```bash
-docker run -it \
-  -p 5678:5678 \
-  -v ~/.n8n:/home/node/.n8n \
-  n8n-puppeteer
+npm run docker:run
 ```
+
+Or for testing without persistent data:
+```bash
+npm run docker:run:fresh
+```
+
+#### Available Docker Scripts
+
+- `npm run docker:build` - Build the Docker image with Puppeteer node
+- `npm run docker:run` - Run n8n with persistent data volume
+- `npm run docker:run:fresh` - Run n8n without persistent data (clean start)
+- `npm run docker:run:external-browser` - Run with external browser connection example
+- `npm run docker:test` - Quick test to verify the image works
+- `npm run docker:shell` - Open a shell inside the container for debugging
+- `npm run docker:clean` - Remove the data volume
+- `npm run docker:clean:all` - Remove data volume and images
+
+#### Container Optimizations
+
+When running in Docker or Kubernetes, the node automatically detects the container environment and applies necessary Chrome launch arguments (`--no-sandbox`, `--disable-setuid-sandbox`, `--disable-dev-shm-usage`, `--disable-gpu`). This happens automatically - no configuration needed!
+
+A blue info banner will appear in the node when a container is detected. This can be toggled off in Options > Add Container Arguments if needed.
 
 ### Manual Installation
 
@@ -59,20 +76,68 @@ The included Docker setup provides the most reliable way to run Chrome/Chromium 
 
 ### 2. Remote Browser (Alternative for Cloud)
 
-You can also connect to an external Chrome instance using the "Browser WebSocket Endpoint" option. This approach:
+You can also connect to an external Chrome or Firefox instance using the "Browser WebSocket Endpoint" option. This approach:
 - Eliminates the need for Chrome dependencies in your n8n environment
 - Simplifies deployment and maintenance
 - Provides better resource isolation
 - Works great for cloud and containerized deployments
+- Supports Firefox via WebDriver BiDi protocol
 
 Options include:
 - **Managed Services**: Use [browserless](https://browserless.io) or [browsercloud](https://browsercloud.io)
-- **Self-Hosted**: Run your own [browser container](https://docs.browserless.io/docker/config):
+- **Self-Hosted Chrome**: Run your own [browser container](https://docs.browserless.io/docker/config):
   ```bash
   docker run -p 3000:3000 -e "TOKEN=6R0W53R135510" ghcr.io/browserless/chromium
   ```
+- **Self-Hosted Firefox**: Run Firefox with WebDriver BiDi support
 
-To use a remote browser, enable "Browser WebSocket Endpoint" in any Puppeteer node and enter your WebSocket URL (e.g., `ws://browserless:3000?token=6R0W53R135510`).
+#### Configuring Remote Browser Connection
+
+**Per-Node Configuration:**
+In any Puppeteer node, go to Options > Add Option:
+- Add "Browser WebSocket Endpoint" and enter your WebSocket URL (e.g., `ws://browserless:3000?token=6R0W53R135510`)
+- Add "Protocol" and select:
+  - **CDP (Chrome DevTools Protocol)** - for Chrome/Chromium (default)
+  - **WebDriver BiDi** - for Firefox
+
+**Global Configuration via Environment Variables (Recommended):**
+
+Instead of configuring each node individually, you can set environment variables:
+
+```bash
+# For Chrome/Chromium
+docker run -it -p 5678:5678 \
+  -e PUPPETEER_BROWSER_WS_ENDPOINT=ws://browserless:3000 \
+  -e PUPPETEER_PROTOCOL=cdp \
+  n8n-puppeteer
+
+# For Firefox
+docker run -it -p 5678:5678 \
+  -e PUPPETEER_BROWSER_WS_ENDPOINT=ws://firefox:4444 \
+  -e PUPPETEER_PROTOCOL=webDriverBiDi \
+  n8n-puppeteer
+```
+
+Or with Docker Compose:
+
+```yaml
+version: '3.8'
+services:
+  n8n:
+    image: n8n-puppeteer
+    environment:
+      - PUPPETEER_BROWSER_WS_ENDPOINT=ws://browserless:3000
+      - PUPPETEER_PROTOCOL=cdp
+    ports:
+      - "5678:5678"
+  
+  browserless:
+    image: browserless/chrome
+    ports:
+      - "3000:3000"
+```
+
+When environment variables are set, a blue info banner will appear showing the configured endpoint. Individual nodes can still override these settings if needed.
 
 ## Troubleshooting
 
@@ -97,11 +162,16 @@ For additional help, see [Puppeteer's troubleshooting guide](https://pptr.dev/tr
   - All Operations
 
     - **Batch Size**: Maximum number of pages to open simultaneously. More pages will consume more memory and CPU.
-    - **Browser WebSocket Endpoint**: The WebSocket URL of the browser to connect to. When configured, puppeteer will skip the browser launch and connect to the browser instance.
+    - **Browser WebSocket Endpoint**: The WebSocket URL of the browser to connect to. When configured, puppeteer will skip the browser launch and connect to the browser instance. Can also be set globally via environment variables: `PUPPETEER_BROWSER_WS_ENDPOINT` or `PUPPETEER_WS_ENDPOINT`.
+    - **Protocol**: The protocol to use when connecting to the browser. Options:
+      - **CDP (Chrome DevTools Protocol)** - Default for Chrome/Chromium
+      - **WebDriver BiDi** - For Firefox and cross-browser automation
+      Can also be set globally via environment variable: `PUPPETEER_PROTOCOL`.
     - **Emulate Device**: Allows you to specify a [device](https://github.com/puppeteer/puppeteer/blob/main/src/common/DeviceDescriptors.ts) to emulate when requesting the page.
     - **Executable Path**: A path where Puppeteer expects to find the bundled browser. Has no effect when 'Browser WebSocket Endpoint' is set.
     - **Extra Headers**: Allows you add additional headers when requesting the page.
     - **Timeout**: Allows you to specify the maximum navigation time in milliseconds. You can pass 0 to disable the timeout entirely.
+    - **Protocol Timeout**: Maximum time in milliseconds to wait for a protocol response. Pass 0 to disable timeout.
     - **Wait Until**: Allows you to change how Puppeteer considers navigation completed.
       - `load`: The load event is fired.
       - `domcontentloaded`: The DOMContentLoaded event is fired.
@@ -111,7 +181,9 @@ For additional help, see [Puppeteer's troubleshooting guide](https://pptr.dev/tr
     - **Headless mode**: Allows you to change whether to run browser runs in headless mode or not.
     - **Use Chrome Headless Shell**: Whether to run browser in headless shell mode. Defaults to false. Headless mode must be enabled. chrome-headless-shell must be in $PATH.
     - **Stealth mode**: When enabled, applies various techniques to make detection of headless Puppeteer harder. Powered by [puppeteer-extra-plugin-stealth](https://github.com/berstend/puppeteer-extra/tree/master/packages/puppeteer-extra-plugin-stealth).
+    - **Human typing mode**: Gives page the function `.typeHuman()` which "humanizes" the writing of input elements. Includes configurable options for typing speed, typos, and backspace delays.
     - **Launch Arguments**: Allows you to specify additional command line arguments passed to the browser instance.
+    - **Add Container Arguments**: Automatically adds recommended arguments for container environments (`--no-sandbox`, `--disable-setuid-sandbox`, `--disable-dev-shm-usage`, `--disable-gpu`). Container environments are auto-detected by default. Disable only if you experience launch issues.
     - **Proxy Server**: Allows Puppeteer to use a custom proxy configuration. You can specify a custom proxy configuration in three ways:
       By providing a semi-colon-separated mapping of list scheme to url/port pairs.
       For example, you can specify:
@@ -263,6 +335,35 @@ return [
   },
 ];
 ```
+
+## Environment Variables
+
+The following environment variables can be used to configure Puppeteer globally:
+
+- **`PUPPETEER_BROWSER_WS_ENDPOINT`** or **`PUPPETEER_WS_ENDPOINT`**: WebSocket URL of the browser to connect to. This eliminates the need to configure each node individually.
+- **`PUPPETEER_PROTOCOL`**: Protocol to use (`cdp` or `webDriverBiDi`). Useful for Firefox setups.
+- **`PUPPETEER_SKIP_CHROMIUM_DOWNLOAD`**: Set to `true` to skip downloading Chromium during installation.
+- **`PUPPETEER_EXECUTABLE_PATH`**: Path to the browser executable.
+
+Example:
+```bash
+docker run -it -p 5678:5678 \
+  -e PUPPETEER_BROWSER_WS_ENDPOINT=ws://browserless:3000 \
+  -e PUPPETEER_PROTOCOL=cdp \
+  n8n-puppeteer
+```
+
+Node-level settings always override environment variables when specified.
+
+## Firefox Support
+
+This node supports Firefox through WebDriver BiDi protocol. To use Firefox:
+
+1. Set up a Firefox instance with WebDriver BiDi enabled
+2. Configure the connection either:
+   - **Per-node**: Options > Browser WebSocket Endpoint + Protocol (WebDriver BiDi)
+   - **Globally**: Environment variables `PUPPETEER_BROWSER_WS_ENDPOINT` + `PUPPETEER_PROTOCOL=webDriverBiDi`
+3. Execute your workflows with Firefox!
 
 ## Screenshots
 
