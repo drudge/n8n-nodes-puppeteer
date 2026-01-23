@@ -1,645 +1,740 @@
 import {
-	type IDataObject,
-	type IExecuteFunctions,
-	type ILoadOptionsFunctions,
-	type INodeExecutionData,
-	type INodePropertyOptions,
-	type INodeType,
-	type INodeTypeDescription,
-	NodeOperationError,
-} from 'n8n-workflow';
-import { makeResolverFromLegacyOptions, NodeVM } from '@n8n/vm2';
+  type IDataObject,
+  type IExecuteFunctions,
+  type ILoadOptionsFunctions,
+  type INodeExecutionData,
+  type INodePropertyOptions,
+  type INodeType,
+  type INodeTypeDescription,
+  NodeOperationError,
+} from "n8n-workflow";
+import { makeResolverFromLegacyOptions, NodeVM } from "@n8n/vm2";
 
-import puppeteer from 'puppeteer-extra';
-import pluginStealth from 'puppeteer-extra-plugin-stealth';
+import puppeteer from "puppeteer-extra";
+import pluginStealth from "puppeteer-extra-plugin-stealth";
 //@ts-ignore
-import pluginHumanTyping from 'puppeteer-extra-plugin-human-typing'; 
+import pluginHumanTyping from "puppeteer-extra-plugin-human-typing";
 import {
-	type Browser,
-	type Device,
-	KnownDevices as devices,
-	type Page,
-	type PaperFormat,
-	type PDFOptions,
-	type PuppeteerLifeCycleEvent,
-	type ScreenshotOptions,
-} from 'puppeteer';
+  type Browser,
+  type Device,
+  KnownDevices as devices,
+  type Page,
+  type PaperFormat,
+  type PDFOptions,
+  type PuppeteerLifeCycleEvent,
+  type ScreenshotOptions,
+} from "puppeteer";
 
-import { nodeDescription } from './Puppeteer.node.options';
+import {
+  nodeDescription,
+  isRunningInContainer,
+} from "./Puppeteer.node.options";
 
 const {
-	NODE_FUNCTION_ALLOW_BUILTIN: builtIn,
-	NODE_FUNCTION_ALLOW_EXTERNAL: external,
-	CODE_ENABLE_STDOUT,
+  NODE_FUNCTION_ALLOW_BUILTIN: builtIn,
+  NODE_FUNCTION_ALLOW_EXTERNAL: external,
+  CODE_ENABLE_STDOUT,
 } = process.env;
 
 const CONTAINER_LAUNCH_ARGS = [
-	'--no-sandbox',
-	'--disable-setuid-sandbox',
-	'--disable-dev-shm-usage',
-	'--disable-gpu'
+  "--no-sandbox",
+  "--disable-setuid-sandbox",
+  "--disable-dev-shm-usage",
+  "--disable-gpu",
 ];
 
 export const vmResolver = makeResolverFromLegacyOptions({
-	external: external
-		? {
-				modules: external.split(','),
-				transitive: false,
-			}
-		: false,
-	builtin: builtIn?.split(',') ?? [],
+  external: external
+    ? {
+        modules: external.split(","),
+        transitive: false,
+      }
+    : false,
+  builtin: builtIn?.split(",") ?? [],
 });
 
 interface HeaderObject {
-	parameter: Record<string, string>[];
+  parameter: Record<string, string>[];
 }
 
 interface QueryParameter {
-	name: string;
-	value: string;
+  name: string;
+  value: string;
 }
 
 type ErrorResponse = INodeExecutionData & {
-	json: {
-		error: string;
-		url?: string;
-		headers?: HeaderObject;
-		statusCode?: number;
-		body?: string;
-	};
-	pairedItem: {
-		item: number;
-	};
-	[key: string]: unknown;
-	error: Error;
+  json: {
+    error: string;
+    url?: string;
+    headers?: HeaderObject;
+    statusCode?: number;
+    body?: string;
+  };
+  pairedItem: {
+    item: number;
+  };
+  [key: string]: unknown;
+  error: Error;
 };
 
 const DEFAULT_USER_AGENT =
-	'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36';
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36";
 
 async function handleError(
-	this: IExecuteFunctions,
-	error: Error,
-	itemIndex: number,
-	url?: string,
-	page?: Page,
+  this: IExecuteFunctions,
+  error: Error,
+  itemIndex: number,
+  url?: string,
+  page?: Page,
 ): Promise<INodeExecutionData[]> {
-	if (page) {
-		try {
-			await page.close();
-		} catch (closeError) {
-			console.error('Error closing page:', closeError);
-		}
-	}
+  if (page) {
+    try {
+      await page.close();
+    } catch (closeError) {
+      console.error("Error closing page:", closeError);
+    }
+  }
 
-	if (this.continueOnFail()) {
-		const nodeOperationError = new NodeOperationError(this.getNode(), error.message);
+  if (this.continueOnFail()) {
+    const nodeOperationError = new NodeOperationError(
+      this.getNode(),
+      error.message,
+    );
 
-		const errorResponse: ErrorResponse = {
-			json: {
-				error: error.message,
-			},
-			pairedItem: {
-				item: itemIndex,
-			},
-			error: nodeOperationError,
-		};
+    const errorResponse: ErrorResponse = {
+      json: {
+        error: error.message,
+      },
+      pairedItem: {
+        item: itemIndex,
+      },
+      error: nodeOperationError,
+    };
 
-		if (url) {
-			errorResponse.json.url = url;
-		}
+    if (url) {
+      errorResponse.json.url = url;
+    }
 
-		return [errorResponse];
-	}
+    return [errorResponse];
+  }
 
-	throw new NodeOperationError(this.getNode(), error.message);
+  throw new NodeOperationError(this.getNode(), error.message);
 }
 
 async function handleOptions(
-	this: IExecuteFunctions,
-	itemIndex: number,
-	items: INodeExecutionData[],
-	browser: Browser,
-	page: Page,
+  this: IExecuteFunctions,
+  itemIndex: number,
+  items: INodeExecutionData[],
+  browser: Browser,
+  page: Page,
 ): Promise<void> {
-	const options = this.getNodeParameter('options', 0, {}) as IDataObject;
-	const pageCaching = options.pageCaching !== false;
-	const headers: HeaderObject = (options.headers || {}) as HeaderObject;
+  const options = this.getNodeParameter("options", 0, {}) as IDataObject;
+  const pageCaching = options.pageCaching !== false;
+  const headers: HeaderObject = (options.headers || {}) as HeaderObject;
 
-	const requestHeaders = (headers.parameter || []).reduce((acc, header) => {
-		acc[header.name] = header.value;
-		return acc;
-	}, {});
-	const device = options.device as string;
+  const requestHeaders = (headers.parameter || []).reduce((acc, header) => {
+    acc[header.name] = header.value;
+    return acc;
+  }, {});
+  const device = options.device as string;
 
-	await page.setCacheEnabled(pageCaching);
+  await page.setCacheEnabled(pageCaching);
 
-	if (device) {
-		const emulatedDevice = devices[device as keyof typeof devices] as Device;
-		if (emulatedDevice) {
-			await page.emulate(emulatedDevice);
-		}
-	} else {
-		const userAgent =
-			requestHeaders['User-Agent'] ||
-			requestHeaders['user-agent'] ||
-			DEFAULT_USER_AGENT;
-		await page.setUserAgent(userAgent);
-	}
+  if (device) {
+    const emulatedDevice = devices[device as keyof typeof devices] as Device;
+    if (emulatedDevice) {
+      await page.emulate(emulatedDevice);
+    }
+  } else {
+    const userAgent =
+      requestHeaders["User-Agent"] ||
+      requestHeaders["user-agent"] ||
+      DEFAULT_USER_AGENT;
+    await page.setUserAgent(userAgent);
+  }
 
-	await page.setExtraHTTPHeaders(requestHeaders);
+  await page.setExtraHTTPHeaders(requestHeaders);
 }
 
 async function runCustomScript(
-	this: IExecuteFunctions,
-	itemIndex: number,
-	items: INodeExecutionData[],
-	browser: Browser,
-	page: Page,
+  this: IExecuteFunctions,
+  itemIndex: number,
+  items: INodeExecutionData[],
+  browser: Browser,
+  page: Page,
 ): Promise<INodeExecutionData[]> {
-	const scriptCode = this.getNodeParameter('scriptCode', itemIndex) as string;
-	const context = {
-		$getNodeParameter: this.getNodeParameter,
-		$getWorkflowStaticData: this.getWorkflowStaticData,
-		helpers: {
-			...this.helpers,
-			httpRequestWithAuthentication: this.helpers.httpRequestWithAuthentication.bind(this),
-			requestWithAuthenticationPaginated: this.helpers.requestWithAuthenticationPaginated.bind(this),
-		},
-		...this.getWorkflowDataProxy(itemIndex),
-		$browser: browser,
-		$page: page,
-		$puppeteer: puppeteer,
-	};
-	const vm = new NodeVM({
-		console: 'redirect',
-		sandbox: context,
-		require: vmResolver,
-		wasm: false,
-	});
+  const scriptCode = this.getNodeParameter("scriptCode", itemIndex) as string;
+  const context = {
+    $getNodeParameter: this.getNodeParameter,
+    $getWorkflowStaticData: this.getWorkflowStaticData,
+    helpers: {
+      ...this.helpers,
+      httpRequestWithAuthentication:
+        this.helpers.httpRequestWithAuthentication.bind(this),
+      requestWithAuthenticationPaginated:
+        this.helpers.requestWithAuthenticationPaginated.bind(this),
+    },
+    ...this.getWorkflowDataProxy(itemIndex),
+    $browser: browser,
+    $page: page,
+    $puppeteer: puppeteer,
+  };
+  const vm = new NodeVM({
+    console: "redirect",
+    sandbox: context,
+    require: vmResolver,
+    wasm: false,
+  });
 
-	vm.on(
-		'console.log',
-		this.getMode() === 'manual'
-			? this.sendMessageToUI.bind(this)
-			: CODE_ENABLE_STDOUT === 'true'
-				? (...args: unknown[]) =>
-					console.log(`[Workflow "${this.getWorkflow().id}"][Node "${this.getNode().name}"]`, ...args)
-				: () => {},
-	);
+  vm.on(
+    "console.log",
+    this.getMode() === "manual"
+      ? this.sendMessageToUI.bind(this)
+      : CODE_ENABLE_STDOUT === "true"
+        ? (...args: unknown[]) =>
+            console.log(
+              `[Workflow "${this.getWorkflow().id}"][Node "${this.getNode().name}"]`,
+              ...args,
+            )
+        : () => {},
+  );
 
-	try {
-		const scriptResult = await vm.run(
-			`module.exports = async function() { ${scriptCode}\n}()`,
-		);
+  try {
+    const scriptResult = await vm.run(
+      `module.exports = async function() { ${scriptCode}\n}()`,
+    );
 
-		if (!Array.isArray(scriptResult)) {
-			return handleError.call(
-				this,
-				new Error(
-					'Custom script must return an array of items. Please ensure your script returns an array, e.g., return [{ key: value }].',
-				),
-				itemIndex,
-				undefined,
-				page,
-			);
-		}
+    if (!Array.isArray(scriptResult)) {
+      return handleError.call(
+        this,
+        new Error(
+          "Custom script must return an array of items. Please ensure your script returns an array, e.g., return [{ key: value }].",
+        ),
+        itemIndex,
+        undefined,
+        page,
+      );
+    }
 
-		return this.helpers.normalizeItems(scriptResult);
-	} catch (error) {
-		return handleError.call(this, error as Error, itemIndex, undefined, page);
-	}
+    return this.helpers.normalizeItems(scriptResult);
+  } catch (error) {
+    return handleError.call(this, error as Error, itemIndex, undefined, page);
+  }
 }
 
 async function processPageOperation(
-	this: IExecuteFunctions,
-	operation: string,
-	url: URL,
-	page: Page,
-	itemIndex: number,
-	options: IDataObject,
+  this: IExecuteFunctions,
+  operation: string,
+  url: URL,
+  page: Page,
+  itemIndex: number,
+  options: IDataObject,
 ): Promise<INodeExecutionData[]> {
-	const waitUntil = options.waitUntil as PuppeteerLifeCycleEvent;
-	const timeout = options.timeout as number;
+  const waitUntil = options.waitUntil as PuppeteerLifeCycleEvent;
+  const timeout = options.timeout as number;
 
-	try {
-		const response = await page.goto(url.toString(), {
-			waitUntil,
-			timeout,
-		});
+  try {
+    const response = await page.goto(url.toString(), {
+      waitUntil,
+      timeout,
+    });
 
-		const headers = await response?.headers();
-		const statusCode = response?.status();
+    const headers = await response?.headers();
+    const statusCode = response?.status();
 
-		if (!response || (statusCode && statusCode >= 400)) {
-			return handleError.call(
-				this,
-				new Error(`Request failed with status code ${statusCode || 0}`),
-				itemIndex,
-				url.toString(),
-				page,
-			);
-		}
+    if (!response || (statusCode && statusCode >= 400)) {
+      return handleError.call(
+        this,
+        new Error(`Request failed with status code ${statusCode || 0}`),
+        itemIndex,
+        url.toString(),
+        page,
+      );
+    }
 
-		if (operation === 'getPageContent') {
-			const body = await page.content();
-			return [{
-				json: {
-					body,
-					headers,
-					statusCode,
-					url: url.toString(),
-				},
-				pairedItem: {
-					item: itemIndex,
-				},
-			}];
-		}
+    if (operation === "getPageContent") {
+      const body = await page.content();
+      return [
+        {
+          json: {
+            body,
+            headers,
+            statusCode,
+            url: url.toString(),
+          },
+          pairedItem: {
+            item: itemIndex,
+          },
+        },
+      ];
+    }
 
-		if (operation === 'getScreenshot') {
-			try {
-				const dataPropertyName = this.getNodeParameter(
-					'dataPropertyName',
-					itemIndex,
-				) as string;
-				const fileName = options.fileName as string;
-				const type = this.getNodeParameter(
-					'imageType',
-					itemIndex,
-				) as ScreenshotOptions['type'];
-				const fullPage = this.getNodeParameter(
-					'fullPage',
-					itemIndex,
-				) as boolean;
-				const screenshotOptions: ScreenshotOptions = {
-					type,
-					fullPage,
-				};
+    if (operation === "getScreenshot") {
+      try {
+        const dataPropertyName = this.getNodeParameter(
+          "dataPropertyName",
+          itemIndex,
+        ) as string;
+        const fileName = options.fileName as string;
+        const type = this.getNodeParameter(
+          "imageType",
+          itemIndex,
+        ) as ScreenshotOptions["type"];
+        const fullPage = this.getNodeParameter(
+          "fullPage",
+          itemIndex,
+        ) as boolean;
+        const screenshotOptions: ScreenshotOptions = {
+          type,
+          fullPage,
+        };
 
-				if (type !== 'png') {
-					const quality = this.getNodeParameter(
-						'quality',
-						itemIndex,
-					) as number;
-					screenshotOptions.quality = quality;
-				}
+        if (type !== "png") {
+          const quality = this.getNodeParameter("quality", itemIndex) as number;
+          screenshotOptions.quality = quality;
+        }
 
-				if (fileName) {
-					screenshotOptions.path = fileName;
-				}
+        if (fileName) {
+          screenshotOptions.path = fileName as
+            | `${string}.jpeg`
+            | `${string}.png`
+            | `${string}.webp`;
+        }
 
-				const screenshot = await page.screenshot(screenshotOptions);
-				if (screenshot) {
-					const binaryData = await this.helpers.prepareBinaryData(
-						Buffer.from(screenshot),
-						screenshotOptions.path,
-						`image/${type}`,
-					);
-					return [{
-						binary: { [dataPropertyName]: binaryData },
-						json: {
-							headers,
-							statusCode,
-							url: url.toString(),
-						},
-						pairedItem: {
-							item: itemIndex,
-						},
-					}];
-				}
-			} catch (error) {
-				return handleError.call(this, error as Error, itemIndex, url.toString(), page);
-			}
-		}
+        const screenshot = await page.screenshot(screenshotOptions);
+        if (screenshot) {
+          const binaryData = await this.helpers.prepareBinaryData(
+            Buffer.from(screenshot),
+            screenshotOptions.path,
+            `image/${type}`,
+          );
+          return [
+            {
+              binary: { [dataPropertyName]: binaryData },
+              json: {
+                headers,
+                statusCode,
+                url: url.toString(),
+              },
+              pairedItem: {
+                item: itemIndex,
+              },
+            },
+          ];
+        }
+      } catch (error) {
+        return handleError.call(
+          this,
+          error as Error,
+          itemIndex,
+          url.toString(),
+          page,
+        );
+      }
+    }
 
-		if (operation === 'getPDF') {
-			try {
-				const dataPropertyName = this.getNodeParameter(
-					'dataPropertyName',
-					itemIndex,
-				) as string;
-				const pageRanges = this.getNodeParameter(
-					'pageRanges',
-					itemIndex,
-				) as string;
-				const displayHeaderFooter = this.getNodeParameter(
-					'displayHeaderFooter',
-					itemIndex,
-				) as boolean;
-				const omitBackground = this.getNodeParameter(
-					'omitBackground',
-					itemIndex,
-				) as boolean;
-				const printBackground = this.getNodeParameter(
-					'printBackground',
-					itemIndex,
-				) as boolean;
-				const landscape = this.getNodeParameter(
-					'landscape',
-					itemIndex,
-				) as boolean;
-				const preferCSSPageSize = this.getNodeParameter(
-					'preferCSSPageSize',
-					itemIndex,
-				) as boolean;
-				const scale = this.getNodeParameter('scale', itemIndex) as number;
-				const margin = this.getNodeParameter(
-					'margin',
-					0,
-					{},
-				) as IDataObject;
+    if (operation === "getPDF") {
+      try {
+        const dataPropertyName = this.getNodeParameter(
+          "dataPropertyName",
+          itemIndex,
+        ) as string;
+        const pageRanges = this.getNodeParameter(
+          "pageRanges",
+          itemIndex,
+        ) as string;
+        const displayHeaderFooter = this.getNodeParameter(
+          "displayHeaderFooter",
+          itemIndex,
+        ) as boolean;
+        const omitBackground = this.getNodeParameter(
+          "omitBackground",
+          itemIndex,
+        ) as boolean;
+        const printBackground = this.getNodeParameter(
+          "printBackground",
+          itemIndex,
+        ) as boolean;
+        const landscape = this.getNodeParameter(
+          "landscape",
+          itemIndex,
+        ) as boolean;
+        const preferCSSPageSize = this.getNodeParameter(
+          "preferCSSPageSize",
+          itemIndex,
+        ) as boolean;
+        const scale = this.getNodeParameter("scale", itemIndex) as number;
+        const margin = this.getNodeParameter("margin", 0, {}) as IDataObject;
 
-				let headerTemplate = '';
-				let footerTemplate = '';
-				let height = '';
-				let width = '';
-				let format: PaperFormat = 'A4';
+        let headerTemplate = "";
+        let footerTemplate = "";
+        let height = "";
+        let width = "";
+        let format: PaperFormat = "A4";
 
-				if (displayHeaderFooter === true) {
-					headerTemplate = this.getNodeParameter(
-						'headerTemplate',
-						itemIndex,
-					) as string;
-					footerTemplate = this.getNodeParameter(
-						'footerTemplate',
-						itemIndex,
-					) as string;
-				}
+        if (displayHeaderFooter === true) {
+          headerTemplate = this.getNodeParameter(
+            "headerTemplate",
+            itemIndex,
+          ) as string;
+          footerTemplate = this.getNodeParameter(
+            "footerTemplate",
+            itemIndex,
+          ) as string;
+        }
 
-				if (preferCSSPageSize !== true) {
-					height = this.getNodeParameter('height', itemIndex) as string;
-					width = this.getNodeParameter('width', itemIndex) as string;
+        if (preferCSSPageSize !== true) {
+          height = this.getNodeParameter("height", itemIndex) as string;
+          width = this.getNodeParameter("width", itemIndex) as string;
 
-					if (!height || !width) {
-						format = this.getNodeParameter(
-							'format',
-							itemIndex,
-						) as PaperFormat;
-					}
-				}
+          if (!height || !width) {
+            format = this.getNodeParameter("format", itemIndex) as PaperFormat;
+          }
+        }
 
-				const pdfOptions: PDFOptions = {
-					format,
-					displayHeaderFooter,
-					omitBackground,
-					printBackground,
-					landscape,
-					headerTemplate,
-					footerTemplate,
-					preferCSSPageSize,
-					scale,
-					height,
-					width,
-					pageRanges,
-					margin,
-				};
-				const fileName = options.fileName as string;
-				if (fileName) {
-					pdfOptions.path = fileName;
-				}
+        const pdfOptions: PDFOptions = {
+          format,
+          displayHeaderFooter,
+          omitBackground,
+          printBackground,
+          landscape,
+          headerTemplate,
+          footerTemplate,
+          preferCSSPageSize,
+          scale,
+          height,
+          width,
+          pageRanges,
+          margin,
+        };
+        const fileName = options.fileName as string;
+        if (fileName) {
+          pdfOptions.path = fileName;
+        }
 
-				const pdf = await page.pdf(pdfOptions);
-				if (pdf) {
-					const binaryData = await this.helpers.prepareBinaryData(
-						Buffer.from(pdf),
-						pdfOptions.path,
-						'application/pdf',
-					);
-					return [{
-						binary: { [dataPropertyName]: binaryData },
-						json: {
-							headers,
-							statusCode,
-							url: url.toString(),
-						},
-						pairedItem: {
-							item: itemIndex,
-						},
-					}];
-				}
-			} catch (error) {
-				return handleError.call(this, error as Error, itemIndex, url.toString(), page);
-			}
-		}
+        const pdf = await page.pdf(pdfOptions);
+        if (pdf) {
+          const binaryData = await this.helpers.prepareBinaryData(
+            Buffer.from(pdf),
+            pdfOptions.path,
+            "application/pdf",
+          );
+          return [
+            {
+              binary: { [dataPropertyName]: binaryData },
+              json: {
+                headers,
+                statusCode,
+                url: url.toString(),
+              },
+              pairedItem: {
+                item: itemIndex,
+              },
+            },
+          ];
+        }
+      } catch (error) {
+        return handleError.call(
+          this,
+          error as Error,
+          itemIndex,
+          url.toString(),
+          page,
+        );
+      }
+    }
 
-		return handleError.call(
-			this,
-			new Error(`Unsupported operation: ${operation}`),
-			itemIndex,
-			url.toString(),
-			page,
-		);
-	} catch (error) {
-		return handleError.call(this, error as Error, itemIndex, url.toString(), page);
-	}
+    return handleError.call(
+      this,
+      new Error(`Unsupported operation: ${operation}`),
+      itemIndex,
+      url.toString(),
+      page,
+    );
+  } catch (error) {
+    return handleError.call(
+      this,
+      error as Error,
+      itemIndex,
+      url.toString(),
+      page,
+    );
+  }
 }
 
 export class Puppeteer implements INodeType {
-	description: INodeTypeDescription = nodeDescription;
+  description: INodeTypeDescription = nodeDescription;
 
-	methods = {
-		loadOptions: {
-			async getDevices(
-				this: ILoadOptionsFunctions,
-			): Promise<INodePropertyOptions[]> {
-				const deviceNames = Object.keys(devices);
-				const returnData: INodePropertyOptions[] = [];
+  methods = {
+    loadOptions: {
+      async getDevices(
+        this: ILoadOptionsFunctions,
+      ): Promise<INodePropertyOptions[]> {
+        const deviceNames = Object.keys(devices);
+        const returnData: INodePropertyOptions[] = [];
 
-				for (const name of deviceNames) {
-					const device = devices[name as keyof typeof devices] as Device;
-					returnData.push({
-						name,
-						value: name,
-						description: `${device.viewport.width} x ${device.viewport.height} @ ${device.viewport.deviceScaleFactor}x`,
-					});
-				}
+        for (const name of deviceNames) {
+          const device = devices[name as keyof typeof devices] as Device;
+          returnData.push({
+            name,
+            value: name,
+            description: `${device.viewport.width} x ${device.viewport.height} @ ${device.viewport.deviceScaleFactor}x`,
+          });
+        }
 
-				return returnData;
-			},
-		},
-	};
+        return returnData;
+      },
+    },
+  };
 
-	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
-		const items = this.getInputData();
-		const returnData: INodeExecutionData[] = [];
-		const options = this.getNodeParameter('options', 0, {}) as IDataObject;
-		const operation = this.getNodeParameter('operation', 0) as string;
-		let headless: 'shell' | boolean = options.headless !== false;
-		const headlessShell = options.shell === true;
-		const executablePath = options.executablePath as string;
-		const browserWSEndpoint = options.browserWSEndpoint as string;
-		const stealth = options.stealth === true;
-		const humanTyping = options.humanTyping === true;
-		const humanTypingOptions =  {
-			keyboardLayout: "en",
-			...((options.humanTypingOptions as IDataObject) || {})
-		};
-		const launchArguments = (options.launchArguments as IDataObject) || {};
-		const launchArgs: IDataObject[] = launchArguments.args as IDataObject[];
-		const args: string[] = [];
-		const device = options.device as string;
-		const protocolTimeout = options.protocolTimeout as number;
-		let batchSize = options.batchSize as number;
+  async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
+    const items = this.getInputData();
+    const returnData: INodeExecutionData[] = [];
+    const options = this.getNodeParameter("options", 0, {}) as IDataObject;
+    const operation = this.getNodeParameter("operation", 0) as string;
+    let headless: "shell" | boolean = options.headless !== false;
+    const headlessShell = options.shell === true;
+    const executablePath = options.executablePath as string;
 
-		if (!Number.isInteger(batchSize) || batchSize < 1) {
-			batchSize = 1;
-		}
+    // Support environment variables for browser connection
+    const browserWSEndpoint =
+      (options.browserWSEndpoint as string) ||
+      process.env.PUPPETEER_BROWSER_WS_ENDPOINT ||
+      process.env.PUPPETEER_WS_ENDPOINT ||
+      "";
+    const protocol =
+      (options.protocol as "cdp" | "webDriverBiDi" | undefined) ||
+      (process.env.PUPPETEER_PROTOCOL as "cdp" | "webDriverBiDi" | undefined);
+    const stealth = options.stealth === true;
+    const humanTyping = options.humanTyping === true;
+    const humanTypingOptions = {
+      keyboardLayout: "en",
+      ...((options.humanTypingOptions as IDataObject) || {}),
+    };
+    const launchArguments = (options.launchArguments as IDataObject) || {};
+    const launchArgs: IDataObject[] = launchArguments.args as IDataObject[];
+    const args: string[] = [];
+    const device = options.device as string;
+    const protocolTimeout = options.protocolTimeout as number;
+    let batchSize = options.batchSize as number;
 
-		// More on launch arguments: https://www.chromium.org/developers/how-tos/run-chromium-with-flags/
-		if (launchArgs && launchArgs.length > 0) {
-			args.push(...launchArgs.map((arg: IDataObject) => arg.arg as string));
-		}
+    if (!Number.isInteger(batchSize) || batchSize < 1) {
+      batchSize = 1;
+    }
 
-		const addContainerArgs = options.addContainerArgs === true;
-		if (addContainerArgs) {
-			const missingContainerArgs = CONTAINER_LAUNCH_ARGS.filter(arg => !args.some(
-				existingArg => existingArg === arg || existingArg.startsWith(`${arg}=`)
-			));
+    // More on launch arguments: https://www.chromium.org/developers/how-tos/run-chromium-with-flags/
+    if (launchArgs && launchArgs.length > 0) {
+      args.push(...launchArgs.map((arg: IDataObject) => arg.arg as string));
+    }
 
-			if (missingContainerArgs.length > 0) {
-				console.log('Puppeteer node: Adding container optimizations:', missingContainerArgs);
-				args.push(...missingContainerArgs);
-			} else {
-				console.log('Puppeteer node: Container optimizations already present in launch arguments');
-			}
-		}
+    // Auto-detect container environment or use explicit setting
+    const addContainerArgsOption = options.addContainerArgs;
+    const isContainer = isRunningInContainer();
+    let addContainerArgs = false;
 
-		// More on proxying: https://www.chromium.org/developers/design-documents/network-settings
-		if (options.proxyServer) {
-			args.push(`--proxy-server=${options.proxyServer}`);
-		}
+    // Determine whether to add container arguments
+    // When addContainerArgsOption is undefined (not set), default to true and auto-detect
+    // When explicitly true, always add
+    // When explicitly false, never add
+    if (addContainerArgsOption === false) {
+      // Explicitly disabled by user
+      console.log(
+        "Puppeteer node: Container arguments explicitly disabled by user",
+      );
+      addContainerArgs = false;
+    } else if (
+      addContainerArgsOption === true ||
+      addContainerArgsOption === undefined
+    ) {
+      // Explicitly enabled OR not set (use default behavior)
+      if (isContainer) {
+        console.log(
+          "Puppeteer node: Container environment detected, applying container arguments",
+        );
+        addContainerArgs = true;
+      } else if (addContainerArgsOption === true) {
+        // Force enabled even outside container
+        console.log(
+          "Puppeteer node: Container arguments enabled (no container detected)",
+        );
+        addContainerArgs = true;
+      }
+    }
 
-		if (stealth) {
-			puppeteer.use(pluginStealth());
-		}
-		if (humanTyping) {
-			puppeteer.use(pluginHumanTyping(humanTypingOptions));
-		}
+    if (addContainerArgs) {
+      const missingContainerArgs = CONTAINER_LAUNCH_ARGS.filter(
+        (arg) =>
+          !args.some(
+            (existingArg) =>
+              existingArg === arg || existingArg.startsWith(`${arg}=`),
+          ),
+      );
 
-		if (headless && headlessShell) {
-			headless = 'shell';
-		}
+      if (missingContainerArgs.length > 0) {
+        console.log(
+          "Puppeteer node: Adding container arguments:",
+          missingContainerArgs,
+        );
+        args.push(...missingContainerArgs);
+      } else {
+        console.log(
+          "Puppeteer node: Container arguments already present in launch arguments",
+        );
+      }
+    }
 
-		let browser: Browser;
-		try {
-			if (browserWSEndpoint) {
-				browser = await puppeteer.connect({
-					browserWSEndpoint,
-					protocolTimeout,
-				});
-			} else {
-				browser = await puppeteer.launch({
-					headless,
-					args,
-					executablePath,
-					protocolTimeout,
-				});
-			}
-		} catch (error) {
-			throw new Error(`Failed to launch/connect to browser: ${(error as Error).message}`);
-		}
+    // More on proxying: https://www.chromium.org/developers/design-documents/network-settings
+    if (options.proxyServer) {
+      args.push(`--proxy-server=${options.proxyServer}`);
+    }
 
-		const processItem = async (
-			item: INodeExecutionData,
-			itemIndex: number,
-		): Promise<INodeExecutionData[]> => {
-			let page: Page | undefined;
-			try {
-				page = await browser.newPage();
-				await handleOptions.call(this, itemIndex, items, browser, page);
+    if (stealth) {
+      puppeteer.use(pluginStealth());
+    }
+    if (humanTyping) {
+      puppeteer.use(pluginHumanTyping(humanTypingOptions));
+    }
 
-				if (operation === 'runCustomScript') {
-					console.log(
-						`Processing ${itemIndex + 1} of ${items.length}: [${operation}]${device ? ` [${device}] ` : ' '} Custom Script`,
-					);
-					return await runCustomScript.call(
-						this,
-						itemIndex,
-						items,
-						browser,
-						page,
-					);
-				}
-					const urlString = this.getNodeParameter('url', itemIndex) as string;
-					const queryParametersOptions = this.getNodeParameter(
-						'queryParameters',
-						itemIndex,
-						{},
-					) as IDataObject;
+    if (headless && headlessShell) {
+      headless = "shell";
+    }
 
-					const queryParameters = (queryParametersOptions.parameters as QueryParameter[]) || [];
-					let url: URL;
+    let browser: Browser;
+    try {
+      if (browserWSEndpoint) {
+        const isFromEnv =
+          !options.browserWSEndpoint &&
+          (process.env.PUPPETEER_BROWSER_WS_ENDPOINT ||
+            process.env.PUPPETEER_WS_ENDPOINT);
+        if (isFromEnv) {
+          console.log(
+            `Puppeteer node: Using browser WebSocket endpoint from environment variable: ${browserWSEndpoint}`,
+          );
+        }
+        if (protocol && protocol !== "cdp") {
+          console.log(`Puppeteer node: Using protocol: ${protocol}`);
+        }
+        browser = await puppeteer.connect({
+          browserWSEndpoint,
+          protocol: protocol || "cdp",
+          protocolTimeout,
+        });
+      } else {
+        browser = await puppeteer.launch({
+          headless,
+          args,
+          executablePath,
+          protocolTimeout,
+        });
+      }
+    } catch (error) {
+      throw new Error(
+        `Failed to launch/connect to browser: ${(error as Error).message}`,
+      );
+    }
 
-					try {
-						url = new URL(urlString);
-						for (const queryParameter of queryParameters) {
-							url.searchParams.append(queryParameter.name, queryParameter.value);
-						}
-					} catch (error) {
-						return handleError.call(
-							this,
-							new Error(`Invalid URL: ${urlString}`),
-							itemIndex,
-							urlString,
-							page,
-						);
-					}
+    const processItem = async (
+      item: INodeExecutionData,
+      itemIndex: number,
+    ): Promise<INodeExecutionData[]> => {
+      let page: Page | undefined;
+      try {
+        page = await browser.newPage();
+        await handleOptions.call(this, itemIndex, items, browser, page);
 
-					console.log(
-						`Processing ${itemIndex + 1} of ${items.length}: [${operation}]${device ? ` [${device}] ` : ' '}${url}`,
-					);
+        if (operation === "runCustomScript") {
+          console.log(
+            `Processing ${itemIndex + 1} of ${items.length}: [${operation}]${device ? ` [${device}] ` : " "} Custom Script`,
+          );
+          return await runCustomScript.call(
+            this,
+            itemIndex,
+            items,
+            browser,
+            page,
+          );
+        }
+        const urlString = this.getNodeParameter("url", itemIndex) as string;
+        const queryParametersOptions = this.getNodeParameter(
+          "queryParameters",
+          itemIndex,
+          {},
+        ) as IDataObject;
 
-					return await processPageOperation.call(
-						this,
-						operation,
-						url,
-						page,
-						itemIndex,
-						options,
-					);
-			} catch (error) {
-				return handleError.call(
-					this,
-					error as Error,
-					itemIndex,
-					undefined,
-					page,
-				);
-			} finally {
-				if (page) {
-					try {
-						await page.close();
-					} catch (error) {
-						console.error('Error closing page:', error);
-					}
-				}
-			}
-		};
+        const queryParameters =
+          (queryParametersOptions.parameters as QueryParameter[]) || [];
+        let url: URL;
 
-		try {
-			for (let i = 0; i < items.length; i += batchSize) {
-				const batch = items.slice(i, i + batchSize);
-				const results = await Promise.all(
-					batch.map((item, idx) => processItem(item, i + idx)),
-				);
-				if (results?.length) {
-					returnData.push(...results.flat());
-				}
-			}
-		} finally {
-			if (browser) {
-				try {
-					if (browserWSEndpoint) {
-						await browser.disconnect();
-					} else {
-						await browser.close();
-					}	
-				} catch (error) {
-					console.error('Error closing browser:', error);
-				}
-			}
-		}
+        try {
+          url = new URL(urlString);
+          for (const queryParameter of queryParameters) {
+            url.searchParams.append(queryParameter.name, queryParameter.value);
+          }
+        } catch (error) {
+          return handleError.call(
+            this,
+            new Error(`Invalid URL: ${urlString}`),
+            itemIndex,
+            urlString,
+            page,
+          );
+        }
 
-		return this.prepareOutputData(returnData);
-	}
+        console.log(
+          `Processing ${itemIndex + 1} of ${items.length}: [${operation}]${device ? ` [${device}] ` : " "}${url}`,
+        );
+
+        return await processPageOperation.call(
+          this,
+          operation,
+          url,
+          page,
+          itemIndex,
+          options,
+        );
+      } catch (error) {
+        return handleError.call(
+          this,
+          error as Error,
+          itemIndex,
+          undefined,
+          page,
+        );
+      } finally {
+        if (page) {
+          try {
+            await page.close();
+          } catch (error) {
+            console.error("Error closing page:", error);
+          }
+        }
+      }
+    };
+
+    try {
+      for (let i = 0; i < items.length; i += batchSize) {
+        const batch = items.slice(i, i + batchSize);
+        const results = await Promise.all(
+          batch.map((item, idx) => processItem(item, i + idx)),
+        );
+        if (results?.length) {
+          returnData.push(...results.flat());
+        }
+      }
+    } finally {
+      if (browser) {
+        try {
+          if (browserWSEndpoint) {
+            await browser.disconnect();
+          } else {
+            await browser.close();
+          }
+        } catch (error) {
+          console.error("Error closing browser:", error);
+        }
+      }
+    }
+
+    return this.prepareOutputData(returnData);
+  }
 }
