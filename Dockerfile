@@ -23,7 +23,8 @@ RUN apk add --no-cache \
 	ttf-freefont \
 	udev \
 	ttf-liberation \
-	font-noto-emoji
+	font-noto-emoji \
+	font-noto-cjk
 
 # Tell Puppeteer to use installed Chrome instead of downloading it
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
