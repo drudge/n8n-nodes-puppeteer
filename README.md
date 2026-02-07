@@ -4,6 +4,8 @@
 
 [n8n](https://www.n8n.io) node for browser automation using [Puppeteer](https://pptr.dev/). Execute custom scripts, capture screenshots and PDFs, scrape content, and automate web interactions using Chrome/Chromium's DevTools Protocol. Full access to Puppeteer's API plus n8n's Code node capabilities makes this node powerful for any browser automation task.
 
+`添加了中文字体，让浏览器可以正常渲染中文`
+
 ## How to install
 
 ### Community Nodes (Recommended)
